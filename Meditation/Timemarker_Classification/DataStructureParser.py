@@ -19,13 +19,13 @@ class dataStructureParser:
         self.numOfYoutubeSessions = 1
         self.numOfMeditationSessions = 6
         self.numOfEyesClosedSessions = 6
-        self.numOfTimeMarkerSessions = 6 #TODO
+        self.numOfTimeMarkerSessions = 4
         self.dayDreamSessionName = 'DayDream_'
         self.mentalMathSessionName = 'MentalMath_'
         self.youtubeSessionsName = 'YouTube_'
         self.meditationSessionName = 'MeditationSession_'
         self.eyesClosedSessionName = 'ControlSession_'
-        self.timeMarkerSessionName = 'TimeMarkerSession_' #TODO
+        self.timeMarkerSessionName = 'TimeMarkerSession_'
 
     def createRawConverter(self, givenName, i):
         name = givenName + str(i)
@@ -40,10 +40,9 @@ class dataStructureParser:
             rawConverter = self.createRawConverter(self.meditationSessionName, i)
             rawSessionList.append(rawConverter)
         for i in range(1, self.numOfTimeMarkerSessions + 1):
-            rawConverter = self.createRawConverter(self.eyesClosedSessionName, i)
+            rawConverter = self.createRawConverter(self.timeMarkerSessionName, i)
             rawSessionList.append(rawConverter)
         return rawSessionList
-
 
 
 
@@ -52,10 +51,26 @@ class dataStructureParser:
             crops = SessionCropper(rawSessionList, 500, 1).crops
         else:
             crops = SessionCropper(rawSessionList, 500, 500).crops
+        focus = 0
+        normal = 0
+        for i in range (0, len(crops)):
+            if crops[i].sessionType == RecordingType.Focus:
+                focus += 1
+            if crops[i].sessionType == RecordingType.Meditation:
+                normal += 1
+        self.overSample(crops, int(normal/focus)) #This is only for the time marker class
         mySeed = 666
         random.seed(mySeed)
         random.shuffle(crops)
         return crops
+
+    def overSample(self, crops, factor):
+        print("Oversampling.")
+        for i in range (0, len(crops)):
+            if (crops[i].sessionType == RecordingType.Focus):
+                for j in range(0, factor):
+                    crops.append(crops[i])
+
 
     def saveToPickle(self, ourObj, fileName):
         pickleOut =  open(fileName, 'wb')
@@ -135,7 +150,6 @@ class dataStructureParser:
             #     eyes_closed += 1
         # print(len(crops), meditation, eyes_closed, meditation + eyes_closed)
 
-#TODO: First make a static shuffle, then split, then shuffle the individual sets...
 #TODO: Use stratified, instead of random sampling
 
 

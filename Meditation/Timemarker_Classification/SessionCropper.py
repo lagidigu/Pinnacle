@@ -1,5 +1,5 @@
 from Meditation.Timemarker_Classification.Crop import Crop
-
+from Meditation.Timemarker_Classification.SQLImporter import RecordingType
 
 class SessionCropper:
 
@@ -14,7 +14,7 @@ class SessionCropper:
 
                 sessionType = session.sessionType
                 if (self.checkIfTimerMarkersInCrop(i, session)): #TODO: We assume that index is at beginning of interval
-                    sessionType = "Focus"
+                    sessionType = RecordingType.Focus
 
                 tempData = session.rawData[0 : len(session.rawData), i : (i + size)]
                 tempCrop = Crop(tempData, sessionType, i)
@@ -22,8 +22,9 @@ class SessionCropper:
         return cropList
 
     def checkIfTimerMarkersInCrop(self, index, rawSession):
-        for i in range (0, len(rawSession.timeMarkerIndeces)):
-            if (rawSession.timeMarkerIndeces[i] < index < rawSession.timeMarkerIndeces[i] + 2000):
+
+        for i in range (0, len(rawSession.timeMarkerIndices)):
+            if (rawSession.timeMarkerIndices[i] < index < rawSession.timeMarkerIndices[i] + 2000):
                 return True
         return False
 

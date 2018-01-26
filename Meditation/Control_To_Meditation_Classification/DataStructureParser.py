@@ -131,7 +131,7 @@ class dataStructureParser:
             #     eyes_closed += 1
         # print(len(crops), meditation, eyes_closed, meditation + eyes_closed)
 
-#TODO: First make a static shuffle, then split, then shuffle the individual sets...
+
 #TODO: Use stratified, instead of random sampling
 
 

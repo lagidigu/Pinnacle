@@ -316,12 +316,17 @@ def test_network(num_test_iterations = len(testY)):
 
 saver = tf.train.Saver()
 save_path_name = "tmp/shallow_convnet_meditation_weights_01.ckpt"
-train_network(num_iterations=3000)
+#train_network(num_iterations=150000)
 test_network()
-plot_conv_weights(weights_conv1)
+#plot_conv_weights(weights_conv1)
 
 print("Layer 1: ", layer_conv1)
 print("Layer 2: ", layer_conv2)
 
 # TODO: What about an Ensemble CNN, where each one takes in a filter bank of the Wavelet Packet Decomposition
 # TODO: Implement a RCNN?
+
+
+# TODO: Make a real time visualizer of the activity levels, as well as synchrony levels
+# TODO: Receive feature visualization for Control and Meditation Visualization, visualize the time band closely (with time markers, colors, etc)
+# TODO: Make a multitude of classifiers, and visualize in realtime how activated they are. Have a VAGUE(!) idea of what they try to track
