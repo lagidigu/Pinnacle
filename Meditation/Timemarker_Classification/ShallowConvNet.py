@@ -186,7 +186,7 @@ validation_class = np.argmax(validationY, axis = 1)
 
 #Convolutional Layer 1
 filter_size_1_x = 6
-filter_size_1_y = 1
+filter_size_1_y = 25
 num_filters_1 = 40
 
 #Convolutional Layer 2
@@ -316,12 +316,18 @@ def test_network(num_test_iterations = len(testY)):
 
 saver = tf.train.Saver()
 save_path_name = "tmp/shallow_convnet_meditation_weights_01.ckpt"
-#train_network(num_iterations=150000)
-test_network()
-#plot_conv_weights(weights_conv1)
 
-print("Layer 1: ", layer_conv1)
-print("Layer 2: ", layer_conv2)
+#######################################
+
+mode = input("Please Enter either 'Train' to train the Network, or 'Test' to test it. You should only test once you have trained it.")
+if (mode == "Train"):
+    print("Just stop the software at any time, the graph will be saved at the previous best validation set.")
+    train_network(num_iterations=150000)
+if (mode == "Test"):
+    print("Testing the network, the confusion matrix and the weights will be posted. ")
+    test_network()
+
+#######################################
 
 # TODO: What about an Ensemble CNN, where each one takes in a filter bank of the Wavelet Packet Decomposition
 # TODO: Implement a RCNN?
