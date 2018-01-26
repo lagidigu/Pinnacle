@@ -316,9 +316,9 @@ def test_network(num_test_iterations = len(testY)):
 
 saver = tf.train.Saver()
 save_path_name = "tmp/shallow_convnet_meditation_weights_01.ckpt"
-#train_network(num_iterations=3000)
+train_network(num_iterations=150000)
 test_network()
-#plot_conv_weights(weights_conv1)
+plot_conv_weights(weights_conv1)
 
 print("Layer 1: ", layer_conv1)
 print("Layer 2: ", layer_conv2)

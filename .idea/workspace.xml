@@ -2,11 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="188ef4ab-c11e-428c-8e24-e6f7adfc0b0b" name="Default" comment="">
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Meditation/Control_To_Meditation_Classification/DataStructureParser.py" afterPath="$PROJECT_DIR$/Meditation/Control_To_Meditation_Classification/DataStructureParser.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Meditation/Timemarker_Classification/DataStructureParser.py" afterPath="$PROJECT_DIR$/Meditation/Timemarker_Classification/DataStructureParser.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Meditation/Timemarker_Classification/SQLImporter.py" afterPath="$PROJECT_DIR$/Meditation/Timemarker_Classification/SQLImporter.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Meditation/Timemarker_Classification/SessionCropper.py" afterPath="$PROJECT_DIR$/Meditation/Timemarker_Classification/SessionCropper.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Meditation/Timemarker_Classification/ShallowConvNet.py" afterPath="$PROJECT_DIR$/Meditation/Timemarker_Classification/ShallowConvNet.py" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Meditation/Control_To_Meditation_Classification/ShallowConvNet.py" afterPath="$PROJECT_DIR$/Meditation/Control_To_Meditation_Classification/ShallowConvNet.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -30,8 +27,8 @@
       <file leaf-file-name="ShallowConvNet.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/Meditation/Control_To_Meditation_Classification/ShallowConvNet.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+            <state relative-caret-position="396">
+              <caret line="193" column="19" lean-forward="false" selection-start-line="193" selection-start-column="19" selection-end-line="193" selection-end-column="19" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
               </folding>
@@ -58,6 +55,7 @@
         <option value="$PROJECT_DIR$/Meditation/Control_To_Meditation_Classification/DataStructureParser.py" />
         <option value="$PROJECT_DIR$/Meditation/Timemarker_Classification/DataStructureParser.py" />
         <option value="$PROJECT_DIR$/Meditation/Timemarker_Classification/ShallowConvNet.py" />
+        <option value="$PROJECT_DIR$/Meditation/Control_To_Meditation_Classification/ShallowConvNet.py" />
       </list>
     </option>
   </component>
@@ -118,7 +116,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/Meditation/Timemarker_Classification/ShallowConvNet.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/Meditation/Control_To_Meditation_Classification/ShallowConvNet.py" />
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -132,7 +130,24 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.Time Marker Shallow CNN">
+  <component name="RunManager" selected="Python.Control Shallow CNN">
+    <configuration name="Control Shallow CNN" type="PythonConfigurationType" factoryName="Python">
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="/usr/bin/python3.5" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/Meditation/Control_To_Meditation_Classification" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <module name="Pinnacle" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/Meditation/Control_To_Meditation_Classification/ShallowConvNet.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+    </configuration>
     <configuration name="Time Marker Shallow CNN" type="PythonConfigurationType" factoryName="Python">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -150,6 +165,10 @@
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
     </configuration>
+    <list size="2">
+      <item index="0" class="java.lang.String" itemvalue="Python.Time Marker Shallow CNN" />
+      <item index="1" class="java.lang.String" itemvalue="Python.Control Shallow CNN" />
+    </list>
   </component>
   <component name="ShelveChangesManager" show_recycled="false">
     <option name="remove_strategy" value="false" />
@@ -211,7 +230,7 @@
         <state relative-caret-position="54">
           <caret line="11" column="30" lean-forward="false" selection-start-line="11" selection-start-column="13" selection-end-line="11" selection-end-column="30" />
           <folding>
-            <element signature="e#0#18#0" expanded="true" />
+            <element signature="e#0#18#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -221,7 +240,7 @@
         <state relative-caret-position="90">
           <caret line="5" column="8" lean-forward="false" selection-start-line="5" selection-start-column="8" selection-end-line="5" selection-end-column="8" />
           <folding>
-            <element signature="e#0#58#0" expanded="true" />
+            <element signature="e#0#58#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -231,7 +250,7 @@
         <state relative-caret-position="469">
           <caret line="71" column="33" lean-forward="false" selection-start-line="71" selection-start-column="33" selection-end-line="71" selection-end-column="33" />
           <folding>
-            <element signature="e#0#9#0" expanded="true" />
+            <element signature="e#0#9#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -241,7 +260,7 @@
         <state relative-caret-position="432">
           <caret line="319" column="0" lean-forward="true" selection-start-line="319" selection-start-column="0" selection-end-line="319" selection-end-column="0" />
           <folding>
-            <element signature="e#0#11#0" expanded="true" />
+            <element signature="e#0#11#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -251,7 +270,7 @@
         <state relative-caret-position="210">
           <caret line="17" column="0" lean-forward="true" selection-start-line="17" selection-start-column="0" selection-end-line="17" selection-end-column="0" />
           <folding>
-            <element signature="e#0#14#0" expanded="true" />
+            <element signature="e#0#14#0" expanded="false" />
           </folding>
         </state>
       </provider>
@@ -266,8 +285,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/Meditation/Control_To_Meditation_Classification/ShallowConvNet.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        <state relative-caret-position="396">
+          <caret line="193" column="19" lean-forward="false" selection-start-line="193" selection-start-column="19" selection-end-line="193" selection-end-column="19" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
           </folding>
