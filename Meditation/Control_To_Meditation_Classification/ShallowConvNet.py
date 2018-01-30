@@ -8,6 +8,7 @@ import numpy as np
 import tensorflow as tf
 from Meditation.Control_To_Meditation_Classification.DataStructureParser import dataStructureParser
 from tensorflow.contrib.layers.python.layers import batch_norm as batch_norm
+from tensorflow.python.tools import freeze_graph
 
 
 def optimize(num_iterations):
@@ -252,6 +253,8 @@ layer_fc_2 = new_fc_layer(input=layer_fc_1,
 y_pred = tf.nn.softmax(layer_fc_2)
 y_pred_cls = tf.argmax(y_pred, axis=1)
 
+output = tf.identity(y_pred_cls, name = "action")
+
 cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=layer_fc_2,
                                                         labels=y_true)
 
@@ -316,17 +319,30 @@ def test_network(num_test_iterations = len(testY)):
 
 
 saver = tf.train.Saver()
-save_path_name = "tmp/shallow_convnet_meditation_weights_01.ckpt"
+save_path_name = "tmp/shallow_convnet_meditation_weights.ckpt"
 
 #######################################
 
-mode = input("Please Enter either 'Train' to train the Network, or 'Test' to test it. You should only test once you have trained it.")
+mode = input("Please Enter either 'Train' to train the Network, or 'Test' to test it. 'Save' will export it.. You should only test once you have trained it.")
 if (mode == "Train"):
     print("Just stop the software at any time, the graph will be saved at the previous best validation set.")
     train_network(num_iterations=150000)
 if (mode == "Test"):
     print("Testing the network, the confusion matrix and the weights will be posted. ")
     test_network()
+if (mode == "Save"):
+    print("Saving the network to a .bytes graph for external use.")
+    tf.train.write_graph(session.graph_def, ".", "MeditationShallowConvNet.pb")
+    freeze_graph.freeze_graph(input_graph = "MeditationShallowConvNet.pb",
+                              input_binary = False,
+                              input_checkpoint = "tmp/shallow_convnet_meditation_weights.ckpt",
+                              output_node_names = "action",
+                              output_graph = "frozen_shallow_convnet_meditation.bytes",
+                              clear_devices = True,
+                              initializer_nodes = "",
+                              input_saver = "",
+                              filename_tensor_name = "save/Const:0",
+                              restore_op_name = "save/restore_all")
 
 #######################################
 
@@ -334,3 +350,7 @@ if (mode == "Test"):
 # TODO: Implement a RCNN?
 
 #TODO: Go Through all todos
+
+
+
+

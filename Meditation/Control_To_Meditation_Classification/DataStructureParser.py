@@ -110,7 +110,7 @@ class dataStructureParser:
 
     # Method to be called from the Neural Network
     def getFeaturesAndLabels(self, useCropping = True):
-        sessions = self.getSessions(useLoadedData=False)
+        sessions = self.getSessions(useLoadedData=True)
         print("Sessions Acquired.")
         crops = self.getCrops(sessions, useCropping)
         print("Crops Acquired and Shuffled.")
@@ -118,20 +118,5 @@ class dataStructureParser:
         print("Features Created.")
         return trainX, trainY, testX, testY, validationX, validationY
 
-    def TEST_distribution_ratio(self, crops):
-        meditation = 0
-        eyes_closed = 0
-
-        for i in range (0, len(crops)):
-            if i % 10 == 0:
-                print(crops[i].sessionType)
-            # if crops[i].sessionType == RecordingType.Meditation:
-            #     meditation += 1
-            # if crops[i].sessionType == RecordingType.EyesClosed:
-            #     eyes_closed += 1
-        # print(len(crops), meditation, eyes_closed, meditation + eyes_closed)
-
-
-#TODO: Use stratified, instead of random sampling
 
 
