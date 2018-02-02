@@ -11,15 +11,6 @@ node {
     key: "shape"
     value {
       shape {
-        dim {
-          size: -1
-        }
-        dim {
-          size: 6
-        }
-        dim {
-          size: 500
-        }
       }
     }
   }
@@ -79,12 +70,6 @@ node {
     key: "shape"
     value {
       shape {
-        dim {
-          size: -1
-        }
-        dim {
-          size: 2
-        }
       }
     }
   }
@@ -125,12 +110,6 @@ node {
     key: "Tidx"
     value {
       type: DT_INT32
-    }
-  }
-  attr {
-    key: "output_type"
-    value {
-      type: DT_INT64
     }
   }
 }
@@ -698,31 +677,7 @@ node {
   }
 }
 node {
-  name: "BatchNorm/Const"
-  op: "Const"
-  attr {
-    key: "dtype"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_FLOAT
-        tensor_shape {
-          dim {
-            size: 40
-          }
-        }
-        float_val: 1.0
-      }
-    }
-  }
-}
-node {
-  name: "BatchNorm/beta/Initializer/zeros"
+  name: "BatchNorm/beta/Initializer/Const"
   op: "Const"
   attr {
     key: "_class"
@@ -797,7 +752,7 @@ node {
   name: "BatchNorm/beta/Assign"
   op: "Assign"
   input: "BatchNorm/beta"
-  input: "BatchNorm/beta/Initializer/zeros"
+  input: "BatchNorm/beta/Initializer/Const"
   attr {
     key: "T"
     value {
@@ -845,7 +800,7 @@ node {
   }
 }
 node {
-  name: "BatchNorm/moving_mean/Initializer/zeros"
+  name: "BatchNorm/moving_mean/Initializer/Const"
   op: "Const"
   attr {
     key: "_class"
@@ -920,7 +875,7 @@ node {
   name: "BatchNorm/moving_mean/Assign"
   op: "Assign"
   input: "BatchNorm/moving_mean"
-  input: "BatchNorm/moving_mean/Initializer/zeros"
+  input: "BatchNorm/moving_mean/Initializer/Const"
   attr {
     key: "T"
     value {
@@ -968,7 +923,7 @@ node {
   }
 }
 node {
-  name: "BatchNorm/moving_variance/Initializer/ones"
+  name: "BatchNorm/moving_variance/Initializer/Const"
   op: "Const"
   attr {
     key: "_class"
@@ -1043,7 +998,7 @@ node {
   name: "BatchNorm/moving_variance/Assign"
   op: "Assign"
   input: "BatchNorm/moving_variance"
-  input: "BatchNorm/moving_variance/Initializer/ones"
+  input: "BatchNorm/moving_variance/Initializer/Const"
   attr {
     key: "T"
     value {
@@ -1091,57 +1046,34 @@ node {
   }
 }
 node {
-  name: "BatchNorm/Const_1"
+  name: "BatchNorm/Reshape/shape"
   op: "Const"
   attr {
     key: "dtype"
     value {
-      type: DT_FLOAT
+      type: DT_INT32
     }
   }
   attr {
     key: "value"
     value {
       tensor {
-        dtype: DT_FLOAT
+        dtype: DT_INT32
         tensor_shape {
           dim {
+            size: 4
           }
         }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
       }
     }
   }
 }
 node {
-  name: "BatchNorm/Const_2"
-  op: "Const"
-  attr {
-    key: "dtype"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_FLOAT
-        tensor_shape {
-          dim {
-          }
-        }
-      }
-    }
-  }
-}
-node {
-  name: "BatchNorm/FusedBatchNorm"
-  op: "FusedBatchNorm"
-  input: "dropout/mul"
-  input: "BatchNorm/Const"
+  name: "BatchNorm/Reshape"
+  op: "Reshape"
   input: "BatchNorm/beta/read"
-  input: "BatchNorm/Const_1"
-  input: "BatchNorm/Const_2"
+  input: "BatchNorm/Reshape/shape"
   attr {
     key: "T"
     value {
@@ -1149,26 +1081,711 @@ node {
     }
   }
   attr {
-    key: "data_format"
+    key: "Tshape"
     value {
-      s: "NHWC"
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/Mean/reduction_indices"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
     }
   }
   attr {
-    key: "epsilon"
+    key: "value"
     value {
-      f: 0.0010000000474974513
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 3
+          }
+        }
+        tensor_content: "\000\000\000\000\001\000\000\000\002\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/Mean"
+  op: "Mean"
+  input: "dropout/mul"
+  input: "BatchNorm/moments/Mean/reduction_indices"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
     }
   }
   attr {
-    key: "is_training"
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
     value {
       b: true
     }
   }
 }
 node {
-  name: "BatchNorm/Const_3"
+  name: "BatchNorm/moments/StopGradient"
+  op: "StopGradient"
+  input: "BatchNorm/moments/Mean"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/sufficient_statistics/Shape"
+  op: "Shape"
+  input: "dropout/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/sufficient_statistics/Cast"
+  op: "Cast"
+  input: "BatchNorm/moments/sufficient_statistics/Shape"
+  attr {
+    key: "DstT"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "SrcT"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/sufficient_statistics/Gather/indices"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 3
+          }
+        }
+        tensor_content: "\000\000\000\000\001\000\000\000\002\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/sufficient_statistics/Gather"
+  op: "Gather"
+  input: "BatchNorm/moments/sufficient_statistics/Cast"
+  input: "BatchNorm/moments/sufficient_statistics/Gather/indices"
+  attr {
+    key: "Tindices"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tparams"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "validate_indices"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/sufficient_statistics/Const"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/sufficient_statistics/count"
+  op: "Prod"
+  input: "BatchNorm/moments/sufficient_statistics/Gather"
+  input: "BatchNorm/moments/sufficient_statistics/Const"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/sufficient_statistics/Sub"
+  op: "Sub"
+  input: "dropout/mul"
+  input: "BatchNorm/moments/StopGradient"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/sufficient_statistics/SquaredDifference"
+  op: "SquaredDifference"
+  input: "dropout/mul"
+  input: "BatchNorm/moments/StopGradient"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/sufficient_statistics/mean_ss/reduction_indices"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 3
+          }
+        }
+        tensor_content: "\000\000\000\000\001\000\000\000\002\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/sufficient_statistics/mean_ss"
+  op: "Sum"
+  input: "BatchNorm/moments/sufficient_statistics/Sub"
+  input: "BatchNorm/moments/sufficient_statistics/mean_ss/reduction_indices"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/sufficient_statistics/var_ss/reduction_indices"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 3
+          }
+        }
+        tensor_content: "\000\000\000\000\001\000\000\000\002\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/sufficient_statistics/var_ss"
+  op: "Sum"
+  input: "BatchNorm/moments/sufficient_statistics/SquaredDifference"
+  input: "BatchNorm/moments/sufficient_statistics/var_ss/reduction_indices"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/Reshape"
+  op: "Reshape"
+  input: "BatchNorm/moments/StopGradient"
+  input: "BatchNorm/moments/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/normalize/divisor"
+  op: "Reciprocal"
+  input: "BatchNorm/moments/sufficient_statistics/count"
+  input: "^BatchNorm/moments/sufficient_statistics/mean_ss"
+  input: "^BatchNorm/moments/sufficient_statistics/var_ss"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/normalize/shifted_mean"
+  op: "Mul"
+  input: "BatchNorm/moments/sufficient_statistics/mean_ss"
+  input: "BatchNorm/moments/normalize/divisor"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/normalize/mean"
+  op: "Add"
+  input: "BatchNorm/moments/normalize/shifted_mean"
+  input: "BatchNorm/moments/Reshape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/normalize/Mul"
+  op: "Mul"
+  input: "BatchNorm/moments/sufficient_statistics/var_ss"
+  input: "BatchNorm/moments/normalize/divisor"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/normalize/Square"
+  op: "Square"
+  input: "BatchNorm/moments/normalize/shifted_mean"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm/moments/normalize/variance"
+  op: "Sub"
+  input: "BatchNorm/moments/normalize/Mul"
+  input: "BatchNorm/moments/normalize/Square"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm/Reshape_1/shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: -1
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/Reshape_1"
+  op: "Reshape"
+  input: "BatchNorm/moments/normalize/mean"
+  input: "BatchNorm/Reshape_1/shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "BatchNorm/Reshape_2/shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: -1
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/Reshape_2"
+  op: "Reshape"
+  input: "BatchNorm/moments/normalize/variance"
+  input: "BatchNorm/Reshape_2/shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "BatchNorm/AssignMovingAvg/decay"
+  op: "Const"
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm/moving_mean"
+      }
+    }
+  }
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 0.0010000000474974513
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/AssignMovingAvg/sub"
+  op: "Sub"
+  input: "BatchNorm/moving_mean/read"
+  input: "BatchNorm/Reshape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm/moving_mean"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/AssignMovingAvg/mul"
+  op: "Mul"
+  input: "BatchNorm/AssignMovingAvg/sub"
+  input: "BatchNorm/AssignMovingAvg/decay"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm/moving_mean"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/AssignMovingAvg"
+  op: "AssignSub"
+  input: "BatchNorm/moving_mean"
+  input: "BatchNorm/AssignMovingAvg/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm/moving_mean"
+      }
+    }
+  }
+  attr {
+    key: "use_locking"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "BatchNorm/AssignMovingAvg_1/decay"
+  op: "Const"
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm/moving_variance"
+      }
+    }
+  }
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 0.0010000000474974513
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/AssignMovingAvg_1/sub"
+  op: "Sub"
+  input: "BatchNorm/moving_variance/read"
+  input: "BatchNorm/Reshape_2"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm/moving_variance"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/AssignMovingAvg_1/mul"
+  op: "Mul"
+  input: "BatchNorm/AssignMovingAvg_1/sub"
+  input: "BatchNorm/AssignMovingAvg_1/decay"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm/moving_variance"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm/AssignMovingAvg_1"
+  op: "AssignSub"
+  input: "BatchNorm/moving_variance"
+  input: "BatchNorm/AssignMovingAvg_1/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm/moving_variance"
+      }
+    }
+  }
+  attr {
+    key: "use_locking"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "BatchNorm/batchnorm/add/y"
   op: "Const"
   attr {
     key: "dtype"
@@ -1189,179 +1806,80 @@ node {
   }
 }
 node {
-  name: "BatchNorm/AssignMovingAvg/read"
-  op: "Identity"
-  input: "BatchNorm/moving_mean"
+  name: "BatchNorm/batchnorm/add"
+  op: "Add"
+  input: "BatchNorm/moments/normalize/variance"
+  input: "BatchNorm/batchnorm/add/y"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
     }
   }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm/moving_mean"
-      }
-    }
-  }
 }
 node {
-  name: "BatchNorm/AssignMovingAvg/Sub"
-  op: "Sub"
-  input: "BatchNorm/AssignMovingAvg/read"
-  input: "BatchNorm/FusedBatchNorm:1"
+  name: "BatchNorm/batchnorm/Rsqrt"
+  op: "Rsqrt"
+  input: "BatchNorm/batchnorm/add"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
     }
   }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm/moving_mean"
-      }
-    }
-  }
 }
 node {
-  name: "BatchNorm/AssignMovingAvg/Mul"
+  name: "BatchNorm/batchnorm/mul"
   op: "Mul"
-  input: "BatchNorm/AssignMovingAvg/Sub"
-  input: "BatchNorm/Const_3"
+  input: "dropout/mul"
+  input: "BatchNorm/batchnorm/Rsqrt"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
     }
   }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm/moving_mean"
-      }
-    }
-  }
 }
 node {
-  name: "BatchNorm/AssignMovingAvg"
-  op: "AssignSub"
-  input: "BatchNorm/moving_mean"
-  input: "BatchNorm/AssignMovingAvg/Mul"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm/moving_mean"
-      }
-    }
-  }
-  attr {
-    key: "use_locking"
-    value {
-      b: false
-    }
-  }
-}
-node {
-  name: "BatchNorm/AssignMovingAvg_1/read"
-  op: "Identity"
-  input: "BatchNorm/moving_variance"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm/moving_variance"
-      }
-    }
-  }
-}
-node {
-  name: "BatchNorm/AssignMovingAvg_1/Sub"
-  op: "Sub"
-  input: "BatchNorm/AssignMovingAvg_1/read"
-  input: "BatchNorm/FusedBatchNorm:2"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm/moving_variance"
-      }
-    }
-  }
-}
-node {
-  name: "BatchNorm/AssignMovingAvg_1/Mul"
+  name: "BatchNorm/batchnorm/mul_1"
   op: "Mul"
-  input: "BatchNorm/AssignMovingAvg_1/Sub"
-  input: "BatchNorm/Const_3"
+  input: "BatchNorm/moments/normalize/mean"
+  input: "BatchNorm/batchnorm/Rsqrt"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm/moving_variance"
-      }
     }
   }
 }
 node {
-  name: "BatchNorm/AssignMovingAvg_1"
-  op: "AssignSub"
-  input: "BatchNorm/moving_variance"
-  input: "BatchNorm/AssignMovingAvg_1/Mul"
+  name: "BatchNorm/batchnorm/sub"
+  op: "Sub"
+  input: "BatchNorm/Reshape"
+  input: "BatchNorm/batchnorm/mul_1"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
     }
   }
+}
+node {
+  name: "BatchNorm/batchnorm/add_1"
+  op: "Add"
+  input: "BatchNorm/batchnorm/mul"
+  input: "BatchNorm/batchnorm/sub"
   attr {
-    key: "_class"
+    key: "T"
     value {
-      list {
-        s: "loc:@BatchNorm/moving_variance"
-      }
-    }
-  }
-  attr {
-    key: "use_locking"
-    value {
-      b: false
+      type: DT_FLOAT
     }
   }
 }
 node {
   name: "Elu"
   op: "Elu"
-  input: "BatchNorm/FusedBatchNorm"
+  input: "BatchNorm/batchnorm/add_1"
   attr {
     key: "T"
     value {
@@ -1978,31 +2496,7 @@ node {
   }
 }
 node {
-  name: "BatchNorm_1/Const"
-  op: "Const"
-  attr {
-    key: "dtype"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_FLOAT
-        tensor_shape {
-          dim {
-            size: 40
-          }
-        }
-        float_val: 1.0
-      }
-    }
-  }
-}
-node {
-  name: "BatchNorm_1/beta/Initializer/zeros"
+  name: "BatchNorm_1/beta/Initializer/Const"
   op: "Const"
   attr {
     key: "_class"
@@ -2077,7 +2571,7 @@ node {
   name: "BatchNorm_1/beta/Assign"
   op: "Assign"
   input: "BatchNorm_1/beta"
-  input: "BatchNorm_1/beta/Initializer/zeros"
+  input: "BatchNorm_1/beta/Initializer/Const"
   attr {
     key: "T"
     value {
@@ -2125,7 +2619,7 @@ node {
   }
 }
 node {
-  name: "BatchNorm_1/moving_mean/Initializer/zeros"
+  name: "BatchNorm_1/moving_mean/Initializer/Const"
   op: "Const"
   attr {
     key: "_class"
@@ -2200,7 +2694,7 @@ node {
   name: "BatchNorm_1/moving_mean/Assign"
   op: "Assign"
   input: "BatchNorm_1/moving_mean"
-  input: "BatchNorm_1/moving_mean/Initializer/zeros"
+  input: "BatchNorm_1/moving_mean/Initializer/Const"
   attr {
     key: "T"
     value {
@@ -2248,7 +2742,7 @@ node {
   }
 }
 node {
-  name: "BatchNorm_1/moving_variance/Initializer/ones"
+  name: "BatchNorm_1/moving_variance/Initializer/Const"
   op: "Const"
   attr {
     key: "_class"
@@ -2323,7 +2817,7 @@ node {
   name: "BatchNorm_1/moving_variance/Assign"
   op: "Assign"
   input: "BatchNorm_1/moving_variance"
-  input: "BatchNorm_1/moving_variance/Initializer/ones"
+  input: "BatchNorm_1/moving_variance/Initializer/Const"
   attr {
     key: "T"
     value {
@@ -2371,57 +2865,34 @@ node {
   }
 }
 node {
-  name: "BatchNorm_1/Const_1"
+  name: "BatchNorm_1/Reshape/shape"
   op: "Const"
   attr {
     key: "dtype"
     value {
-      type: DT_FLOAT
+      type: DT_INT32
     }
   }
   attr {
     key: "value"
     value {
       tensor {
-        dtype: DT_FLOAT
+        dtype: DT_INT32
         tensor_shape {
           dim {
+            size: 4
           }
         }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
       }
     }
   }
 }
 node {
-  name: "BatchNorm_1/Const_2"
-  op: "Const"
-  attr {
-    key: "dtype"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "value"
-    value {
-      tensor {
-        dtype: DT_FLOAT
-        tensor_shape {
-          dim {
-          }
-        }
-      }
-    }
-  }
-}
-node {
-  name: "BatchNorm_1/FusedBatchNorm"
-  op: "FusedBatchNorm"
-  input: "dropout_1/mul"
-  input: "BatchNorm_1/Const"
+  name: "BatchNorm_1/Reshape"
+  op: "Reshape"
   input: "BatchNorm_1/beta/read"
-  input: "BatchNorm_1/Const_1"
-  input: "BatchNorm_1/Const_2"
+  input: "BatchNorm_1/Reshape/shape"
   attr {
     key: "T"
     value {
@@ -2429,26 +2900,711 @@ node {
     }
   }
   attr {
-    key: "data_format"
+    key: "Tshape"
     value {
-      s: "NHWC"
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/Mean/reduction_indices"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
     }
   }
   attr {
-    key: "epsilon"
+    key: "value"
     value {
-      f: 0.0010000000474974513
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 3
+          }
+        }
+        tensor_content: "\000\000\000\000\001\000\000\000\002\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/Mean"
+  op: "Mean"
+  input: "dropout_1/mul"
+  input: "BatchNorm_1/moments/Mean/reduction_indices"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
     }
   }
   attr {
-    key: "is_training"
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
     value {
       b: true
     }
   }
 }
 node {
-  name: "BatchNorm_1/Const_3"
+  name: "BatchNorm_1/moments/StopGradient"
+  op: "StopGradient"
+  input: "BatchNorm_1/moments/Mean"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/sufficient_statistics/Shape"
+  op: "Shape"
+  input: "dropout_1/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/sufficient_statistics/Cast"
+  op: "Cast"
+  input: "BatchNorm_1/moments/sufficient_statistics/Shape"
+  attr {
+    key: "DstT"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "SrcT"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/sufficient_statistics/Gather/indices"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 3
+          }
+        }
+        tensor_content: "\000\000\000\000\001\000\000\000\002\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/sufficient_statistics/Gather"
+  op: "Gather"
+  input: "BatchNorm_1/moments/sufficient_statistics/Cast"
+  input: "BatchNorm_1/moments/sufficient_statistics/Gather/indices"
+  attr {
+    key: "Tindices"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tparams"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "validate_indices"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/sufficient_statistics/Const"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/sufficient_statistics/count"
+  op: "Prod"
+  input: "BatchNorm_1/moments/sufficient_statistics/Gather"
+  input: "BatchNorm_1/moments/sufficient_statistics/Const"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/sufficient_statistics/Sub"
+  op: "Sub"
+  input: "dropout_1/mul"
+  input: "BatchNorm_1/moments/StopGradient"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/sufficient_statistics/SquaredDifference"
+  op: "SquaredDifference"
+  input: "dropout_1/mul"
+  input: "BatchNorm_1/moments/StopGradient"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/sufficient_statistics/mean_ss/reduction_indices"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 3
+          }
+        }
+        tensor_content: "\000\000\000\000\001\000\000\000\002\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/sufficient_statistics/mean_ss"
+  op: "Sum"
+  input: "BatchNorm_1/moments/sufficient_statistics/Sub"
+  input: "BatchNorm_1/moments/sufficient_statistics/mean_ss/reduction_indices"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/sufficient_statistics/var_ss/reduction_indices"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 3
+          }
+        }
+        tensor_content: "\000\000\000\000\001\000\000\000\002\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/sufficient_statistics/var_ss"
+  op: "Sum"
+  input: "BatchNorm_1/moments/sufficient_statistics/SquaredDifference"
+  input: "BatchNorm_1/moments/sufficient_statistics/var_ss/reduction_indices"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/Reshape"
+  op: "Reshape"
+  input: "BatchNorm_1/moments/StopGradient"
+  input: "BatchNorm_1/moments/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/normalize/divisor"
+  op: "Reciprocal"
+  input: "BatchNorm_1/moments/sufficient_statistics/count"
+  input: "^BatchNorm_1/moments/sufficient_statistics/mean_ss"
+  input: "^BatchNorm_1/moments/sufficient_statistics/var_ss"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/normalize/shifted_mean"
+  op: "Mul"
+  input: "BatchNorm_1/moments/sufficient_statistics/mean_ss"
+  input: "BatchNorm_1/moments/normalize/divisor"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/normalize/mean"
+  op: "Add"
+  input: "BatchNorm_1/moments/normalize/shifted_mean"
+  input: "BatchNorm_1/moments/Reshape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/normalize/Mul"
+  op: "Mul"
+  input: "BatchNorm_1/moments/sufficient_statistics/var_ss"
+  input: "BatchNorm_1/moments/normalize/divisor"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/normalize/Square"
+  op: "Square"
+  input: "BatchNorm_1/moments/normalize/shifted_mean"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/moments/normalize/variance"
+  op: "Sub"
+  input: "BatchNorm_1/moments/normalize/Mul"
+  input: "BatchNorm_1/moments/normalize/Square"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/Reshape_1/shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: -1
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/Reshape_1"
+  op: "Reshape"
+  input: "BatchNorm_1/moments/normalize/mean"
+  input: "BatchNorm_1/Reshape_1/shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/Reshape_2/shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: -1
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/Reshape_2"
+  op: "Reshape"
+  input: "BatchNorm_1/moments/normalize/variance"
+  input: "BatchNorm_1/Reshape_2/shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/AssignMovingAvg/decay"
+  op: "Const"
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm_1/moving_mean"
+      }
+    }
+  }
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 0.0010000000474974513
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/AssignMovingAvg/sub"
+  op: "Sub"
+  input: "BatchNorm_1/moving_mean/read"
+  input: "BatchNorm_1/Reshape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm_1/moving_mean"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/AssignMovingAvg/mul"
+  op: "Mul"
+  input: "BatchNorm_1/AssignMovingAvg/sub"
+  input: "BatchNorm_1/AssignMovingAvg/decay"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm_1/moving_mean"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/AssignMovingAvg"
+  op: "AssignSub"
+  input: "BatchNorm_1/moving_mean"
+  input: "BatchNorm_1/AssignMovingAvg/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm_1/moving_mean"
+      }
+    }
+  }
+  attr {
+    key: "use_locking"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/AssignMovingAvg_1/decay"
+  op: "Const"
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm_1/moving_variance"
+      }
+    }
+  }
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 0.0010000000474974513
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/AssignMovingAvg_1/sub"
+  op: "Sub"
+  input: "BatchNorm_1/moving_variance/read"
+  input: "BatchNorm_1/Reshape_2"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm_1/moving_variance"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/AssignMovingAvg_1/mul"
+  op: "Mul"
+  input: "BatchNorm_1/AssignMovingAvg_1/sub"
+  input: "BatchNorm_1/AssignMovingAvg_1/decay"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm_1/moving_variance"
+      }
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/AssignMovingAvg_1"
+  op: "AssignSub"
+  input: "BatchNorm_1/moving_variance"
+  input: "BatchNorm_1/AssignMovingAvg_1/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm_1/moving_variance"
+      }
+    }
+  }
+  attr {
+    key: "use_locking"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "BatchNorm_1/batchnorm/add/y"
   op: "Const"
   attr {
     key: "dtype"
@@ -2469,179 +3625,80 @@ node {
   }
 }
 node {
-  name: "BatchNorm_1/AssignMovingAvg/read"
-  op: "Identity"
-  input: "BatchNorm_1/moving_mean"
+  name: "BatchNorm_1/batchnorm/add"
+  op: "Add"
+  input: "BatchNorm_1/moments/normalize/variance"
+  input: "BatchNorm_1/batchnorm/add/y"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
     }
   }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm_1/moving_mean"
-      }
-    }
-  }
 }
 node {
-  name: "BatchNorm_1/AssignMovingAvg/Sub"
-  op: "Sub"
-  input: "BatchNorm_1/AssignMovingAvg/read"
-  input: "BatchNorm_1/FusedBatchNorm:1"
+  name: "BatchNorm_1/batchnorm/Rsqrt"
+  op: "Rsqrt"
+  input: "BatchNorm_1/batchnorm/add"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
     }
   }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm_1/moving_mean"
-      }
-    }
-  }
 }
 node {
-  name: "BatchNorm_1/AssignMovingAvg/Mul"
+  name: "BatchNorm_1/batchnorm/mul"
   op: "Mul"
-  input: "BatchNorm_1/AssignMovingAvg/Sub"
-  input: "BatchNorm_1/Const_3"
+  input: "dropout_1/mul"
+  input: "BatchNorm_1/batchnorm/Rsqrt"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
     }
   }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm_1/moving_mean"
-      }
-    }
-  }
 }
 node {
-  name: "BatchNorm_1/AssignMovingAvg"
-  op: "AssignSub"
-  input: "BatchNorm_1/moving_mean"
-  input: "BatchNorm_1/AssignMovingAvg/Mul"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm_1/moving_mean"
-      }
-    }
-  }
-  attr {
-    key: "use_locking"
-    value {
-      b: false
-    }
-  }
-}
-node {
-  name: "BatchNorm_1/AssignMovingAvg_1/read"
-  op: "Identity"
-  input: "BatchNorm_1/moving_variance"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm_1/moving_variance"
-      }
-    }
-  }
-}
-node {
-  name: "BatchNorm_1/AssignMovingAvg_1/Sub"
-  op: "Sub"
-  input: "BatchNorm_1/AssignMovingAvg_1/read"
-  input: "BatchNorm_1/FusedBatchNorm:2"
-  attr {
-    key: "T"
-    value {
-      type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm_1/moving_variance"
-      }
-    }
-  }
-}
-node {
-  name: "BatchNorm_1/AssignMovingAvg_1/Mul"
+  name: "BatchNorm_1/batchnorm/mul_1"
   op: "Mul"
-  input: "BatchNorm_1/AssignMovingAvg_1/Sub"
-  input: "BatchNorm_1/Const_3"
+  input: "BatchNorm_1/moments/normalize/mean"
+  input: "BatchNorm_1/batchnorm/Rsqrt"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
-    }
-  }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm_1/moving_variance"
-      }
     }
   }
 }
 node {
-  name: "BatchNorm_1/AssignMovingAvg_1"
-  op: "AssignSub"
-  input: "BatchNorm_1/moving_variance"
-  input: "BatchNorm_1/AssignMovingAvg_1/Mul"
+  name: "BatchNorm_1/batchnorm/sub"
+  op: "Sub"
+  input: "BatchNorm_1/Reshape"
+  input: "BatchNorm_1/batchnorm/mul_1"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
     }
   }
+}
+node {
+  name: "BatchNorm_1/batchnorm/add_1"
+  op: "Add"
+  input: "BatchNorm_1/batchnorm/mul"
+  input: "BatchNorm_1/batchnorm/sub"
   attr {
-    key: "_class"
+    key: "T"
     value {
-      list {
-        s: "loc:@BatchNorm_1/moving_variance"
-      }
-    }
-  }
-  attr {
-    key: "use_locking"
-    value {
-      b: false
+      type: DT_FLOAT
     }
   }
 }
 node {
   name: "Elu_1"
   op: "Elu"
-  input: "BatchNorm_1/FusedBatchNorm"
+  input: "BatchNorm_1/batchnorm/add_1"
   attr {
     key: "T"
     value {
@@ -3434,12 +4491,6 @@ node {
     key: "Tidx"
     value {
       type: DT_INT32
-    }
-  }
-  attr {
-    key: "output_type"
-    value {
-      type: DT_INT64
     }
   }
 }
@@ -4294,14 +5345,6 @@ node {
   name: "gradients/Mean_grad/Const"
   op: "Const"
   attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@gradients/Mean_grad/Shape_1"
-      }
-    }
-  }
-  attr {
     key: "dtype"
     value {
       type: DT_INT32
@@ -4340,14 +5383,6 @@ node {
     }
   }
   attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@gradients/Mean_grad/Shape_1"
-      }
-    }
-  }
-  attr {
     key: "keep_dims"
     value {
       b: false
@@ -4357,14 +5392,6 @@ node {
 node {
   name: "gradients/Mean_grad/Const_1"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@gradients/Mean_grad/Shape_1"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -4404,14 +5431,6 @@ node {
     }
   }
   attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@gradients/Mean_grad/Shape_1"
-      }
-    }
-  }
-  attr {
     key: "keep_dims"
     value {
       b: false
@@ -4421,14 +5440,6 @@ node {
 node {
   name: "gradients/Mean_grad/Maximum/y"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@gradients/Mean_grad/Shape_1"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -4458,14 +5469,6 @@ node {
       type: DT_INT32
     }
   }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@gradients/Mean_grad/Shape_1"
-      }
-    }
-  }
 }
 node {
   name: "gradients/Mean_grad/floordiv"
@@ -4476,14 +5479,6 @@ node {
     key: "T"
     value {
       type: DT_INT32
-    }
-  }
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@gradients/Mean_grad/Shape_1"
-      }
     }
   }
 }
@@ -4563,6 +5558,17 @@ node {
   }
 }
 node {
+  name: "gradients/SoftmaxCrossEntropyWithLogits_grad/PreventGradient"
+  op: "PreventGradient"
+  input: "SoftmaxCrossEntropyWithLogits:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
   name: "gradients/SoftmaxCrossEntropyWithLogits_grad/ExpandDims/dim"
   op: "Const"
   attr {
@@ -4605,7 +5611,7 @@ node {
   name: "gradients/SoftmaxCrossEntropyWithLogits_grad/mul"
   op: "Mul"
   input: "gradients/SoftmaxCrossEntropyWithLogits_grad/ExpandDims"
-  input: "SoftmaxCrossEntropyWithLogits:1"
+  input: "gradients/SoftmaxCrossEntropyWithLogits_grad/PreventGradient"
   attr {
     key: "T"
     value {
@@ -5250,57 +6256,63 @@ node {
   }
 }
 node {
-  name: "gradients/zeros_like_1"
-  op: "ZerosLike"
-  input: "BatchNorm_1/FusedBatchNorm:1"
+  name: "gradients/BatchNorm_1/batchnorm/add_1_grad/Shape"
+  op: "Shape"
+  input: "BatchNorm_1/batchnorm/mul"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
     }
   }
-}
-node {
-  name: "gradients/zeros_like_2"
-  op: "ZerosLike"
-  input: "BatchNorm_1/FusedBatchNorm:2"
   attr {
-    key: "T"
+    key: "out_type"
     value {
-      type: DT_FLOAT
+      type: DT_INT32
     }
   }
 }
 node {
-  name: "gradients/zeros_like_3"
-  op: "ZerosLike"
-  input: "BatchNorm_1/FusedBatchNorm:3"
+  name: "gradients/BatchNorm_1/batchnorm/add_1_grad/Shape_1"
+  op: "Const"
   attr {
-    key: "T"
+    key: "dtype"
     value {
-      type: DT_FLOAT
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
     }
   }
 }
 node {
-  name: "gradients/zeros_like_4"
-  op: "ZerosLike"
-  input: "BatchNorm_1/FusedBatchNorm:4"
+  name: "gradients/BatchNorm_1/batchnorm/add_1_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/Shape"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/Shape_1"
   attr {
     key: "T"
     value {
-      type: DT_FLOAT
+      type: DT_INT32
     }
   }
 }
 node {
-  name: "gradients/BatchNorm_1/FusedBatchNorm_grad/FusedBatchNormGrad"
-  op: "FusedBatchNormGrad"
+  name: "gradients/BatchNorm_1/batchnorm/add_1_grad/Sum"
+  op: "Sum"
   input: "gradients/Elu_1_grad/EluGrad"
-  input: "dropout_1/mul"
-  input: "BatchNorm_1/Const"
-  input: "BatchNorm_1/FusedBatchNorm:3"
-  input: "BatchNorm_1/FusedBatchNorm:4"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/BroadcastGradientArgs"
   attr {
     key: "T"
     value {
@@ -5308,74 +6320,3604 @@ node {
     }
   }
   attr {
-    key: "data_format"
+    key: "Tidx"
     value {
-      s: "NHWC"
+      type: DT_INT32
     }
   }
   attr {
-    key: "epsilon"
+    key: "keep_dims"
     value {
-      f: 0.0010000000474974513
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_1_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/Sum"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
     }
   }
   attr {
-    key: "is_training"
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_1_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/Elu_1_grad/EluGrad"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_1_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/Sum_1"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_1_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm_1/batchnorm/add_1_grad/Reshape"
+  input: "^gradients/BatchNorm_1/batchnorm/add_1_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_1_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/Reshape"
+  input: "^gradients/BatchNorm_1/batchnorm/add_1_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/batchnorm/add_1_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_1_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/Reshape_1"
+  input: "^gradients/BatchNorm_1/batchnorm/add_1_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/batchnorm/add_1_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_grad/Shape"
+  op: "Shape"
+  input: "dropout_1/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/Shape"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_grad/mul"
+  op: "Mul"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/tuple/control_dependency"
+  input: "BatchNorm_1/batchnorm/Rsqrt"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/mul"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/Sum"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_grad/mul_1"
+  op: "Mul"
+  input: "dropout_1/mul"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/tuple/control_dependency"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/mul_1"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/Sum_1"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm_1/batchnorm/mul_grad/Reshape"
+  input: "^gradients/BatchNorm_1/batchnorm/mul_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/Reshape"
+  input: "^gradients/BatchNorm_1/batchnorm/mul_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/batchnorm/mul_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/Reshape_1"
+  input: "^gradients/BatchNorm_1/batchnorm/mul_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/batchnorm/mul_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/sub_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/sub_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/sub_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/Shape"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/sub_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/sub_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/Sum"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/sub_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/batchnorm/add_1_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/sub_grad/Neg"
+  op: "Neg"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/Sum_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/sub_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/Neg"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/sub_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm_1/batchnorm/sub_grad/Reshape"
+  input: "^gradients/BatchNorm_1/batchnorm/sub_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/sub_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/Reshape"
+  input: "^gradients/BatchNorm_1/batchnorm/sub_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/batchnorm/sub_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/sub_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/Reshape_1"
+  input: "^gradients/BatchNorm_1/batchnorm/sub_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/batchnorm/sub_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/Reshape_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 40
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/Reshape_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm_1/Reshape_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_1_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Shape"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_1_grad/mul"
+  op: "Mul"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/tuple/control_dependency_1"
+  input: "BatchNorm_1/batchnorm/Rsqrt"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/mul"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Sum"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_1_grad/mul_1"
+  op: "Mul"
+  input: "BatchNorm_1/moments/normalize/mean"
+  input: "gradients/BatchNorm_1/batchnorm/sub_grad/tuple/control_dependency_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/mul_1"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Sum_1"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_1_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm_1/batchnorm/mul_1_grad/Reshape"
+  input: "^gradients/BatchNorm_1/batchnorm/mul_1_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_1_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Reshape"
+  input: "^gradients/BatchNorm_1/batchnorm/mul_1_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/batchnorm/mul_1_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/mul_1_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/Reshape_1"
+  input: "^gradients/BatchNorm_1/batchnorm/mul_1_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/batchnorm/mul_1_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/mean_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/mean_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/mean_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm_1/moments/normalize/mean_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/normalize/mean_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/mean_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm_1/moments/normalize/mean_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/mean_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/normalize/mean_grad/Sum"
+  input: "gradients/BatchNorm_1/moments/normalize/mean_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/mean_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm_1/moments/normalize/mean_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/mean_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/normalize/mean_grad/Sum_1"
+  input: "gradients/BatchNorm_1/moments/normalize/mean_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/mean_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm_1/moments/normalize/mean_grad/Reshape"
+  input: "^gradients/BatchNorm_1/moments/normalize/mean_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/mean_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/moments/normalize/mean_grad/Reshape"
+  input: "^gradients/BatchNorm_1/moments/normalize/mean_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/normalize/mean_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/mean_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/moments/normalize/mean_grad/Reshape_1"
+  input: "^gradients/BatchNorm_1/moments/normalize/mean_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/normalize/mean_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/AddN"
+  op: "AddN"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm_1/batchnorm/mul_1_grad/tuple/control_dependency_1"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/batchnorm/mul_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/Rsqrt_grad/RsqrtGrad"
+  op: "RsqrtGrad"
+  input: "BatchNorm_1/batchnorm/Rsqrt"
+  input: "gradients/AddN"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/Reshape_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/Reshape_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/normalize/mean_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm_1/moments/Reshape_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+          }
+        }
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm_1/batchnorm/add_grad/Shape"
+  input: "gradients/BatchNorm_1/batchnorm/add_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/batchnorm/Rsqrt_grad/RsqrtGrad"
+  input: "gradients/BatchNorm_1/batchnorm/add_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/batchnorm/add_grad/Sum"
+  input: "gradients/BatchNorm_1/batchnorm/add_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/batchnorm/Rsqrt_grad/RsqrtGrad"
+  input: "gradients/BatchNorm_1/batchnorm/add_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/batchnorm/add_grad/Sum_1"
+  input: "gradients/BatchNorm_1/batchnorm/add_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm_1/batchnorm/add_grad/Reshape"
+  input: "^gradients/BatchNorm_1/batchnorm/add_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/batchnorm/add_grad/Reshape"
+  input: "^gradients/BatchNorm_1/batchnorm/add_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/batchnorm/add_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/batchnorm/add_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/batchnorm/add_grad/Reshape_1"
+  input: "^gradients/BatchNorm_1/batchnorm/add_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/batchnorm/add_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/variance_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/variance_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/variance_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/variance_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/batchnorm/add_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/variance_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/Sum"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/variance_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/batchnorm/add_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/variance_grad/Neg"
+  op: "Neg"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/Sum_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/variance_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/Neg"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/variance_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm_1/moments/normalize/variance_grad/Reshape"
+  input: "^gradients/BatchNorm_1/moments/normalize/variance_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/variance_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/Reshape"
+  input: "^gradients/BatchNorm_1/moments/normalize/variance_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/normalize/variance_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/variance_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/Reshape_1"
+  input: "^gradients/BatchNorm_1/moments/normalize/variance_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/normalize/variance_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+          }
+        }
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Mul_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Mul_grad/mul"
+  op: "Mul"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/tuple/control_dependency"
+  input: "BatchNorm_1/moments/normalize/divisor"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/mul"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Sum"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Mul_grad/mul_1"
+  op: "Mul"
+  input: "BatchNorm_1/moments/sufficient_statistics/var_ss"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/tuple/control_dependency"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/mul_1"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Sum_1"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Mul_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm_1/moments/normalize/Mul_grad/Reshape"
+  input: "^gradients/BatchNorm_1/moments/normalize/Mul_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Mul_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Reshape"
+  input: "^gradients/BatchNorm_1/moments/normalize/Mul_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/normalize/Mul_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Mul_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/Reshape_1"
+  input: "^gradients/BatchNorm_1/moments/normalize/Mul_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/normalize/Mul_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Square_grad/mul/x"
+  op: "Const"
+  input: "^gradients/BatchNorm_1/moments/normalize/variance_grad/tuple/control_dependency_1"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 2.0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Square_grad/mul"
+  op: "Mul"
+  input: "gradients/BatchNorm_1/moments/normalize/Square_grad/mul/x"
+  input: "BatchNorm_1/moments/normalize/shifted_mean"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/Square_grad/mul_1"
+  op: "Mul"
+  input: "gradients/BatchNorm_1/moments/normalize/variance_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm_1/moments/normalize/Square_grad/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Shape"
+  op: "Shape"
+  input: "BatchNorm_1/moments/sufficient_statistics/SquaredDifference"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Size"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 4
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/add"
+  op: "Add"
+  input: "BatchNorm_1/moments/sufficient_statistics/var_ss/reduction_indices"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Size"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/mod"
+  op: "FloorMod"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/add"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Size"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 3
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/range/start"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/range/delta"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/range"
+  op: "Range"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/range/start"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Size"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/range/delta"
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Fill/value"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Fill"
+  op: "Fill"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Shape_1"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Fill/value"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/DynamicStitch"
+  op: "DynamicStitch"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/range"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/mod"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Fill"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Maximum/y"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Maximum"
+  op: "Maximum"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/DynamicStitch"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Maximum/y"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/floordiv"
+  op: "FloorDiv"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Maximum"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/DynamicStitch"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Tile"
+  op: "Tile"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Reshape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/floordiv"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tmultiples"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/AddN_1"
+  op: "AddN"
+  input: "gradients/BatchNorm_1/moments/normalize/mean_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm_1/moments/normalize/Square_grad/mul_1"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/normalize/mean_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+          }
+        }
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/mul"
+  op: "Mul"
+  input: "gradients/AddN_1"
+  input: "BatchNorm_1/moments/normalize/divisor"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/mul"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Sum"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/mul_1"
+  op: "Mul"
+  input: "BatchNorm_1/moments/sufficient_statistics/mean_ss"
+  input: "gradients/AddN_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/mul_1"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Sum_1"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Reshape"
+  input: "^gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Reshape"
+  input: "^gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Reshape_1"
+  input: "^gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Shape"
+  op: "Shape"
+  input: "dropout_1/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/scalar"
+  op: "Const"
+  input: "^gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Tile"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 2.0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/mul"
+  op: "Mul"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/scalar"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Tile"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/sub"
+  op: "Sub"
+  input: "dropout_1/mul"
+  input: "BatchNorm_1/moments/StopGradient"
+  input: "^gradients/BatchNorm_1/moments/sufficient_statistics/var_ss_grad/Tile"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/mul_1"
+  op: "Mul"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/mul"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/sub"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/mul_1"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Sum"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/mul_1"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Sum_1"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Neg"
+  op: "Neg"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Reshape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Reshape"
+  input: "^gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Neg"
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Reshape"
+  input: "^gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Neg"
+  input: "^gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/Neg"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Shape"
+  op: "Shape"
+  input: "BatchNorm_1/moments/sufficient_statistics/Sub"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Size"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 4
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/add"
+  op: "Add"
+  input: "BatchNorm_1/moments/sufficient_statistics/mean_ss/reduction_indices"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Size"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/mod"
+  op: "FloorMod"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/add"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Size"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 3
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/range/start"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/range/delta"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/range"
+  op: "Range"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/range/start"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Size"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/range/delta"
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Fill/value"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Fill"
+  op: "Fill"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Shape_1"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Fill/value"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/DynamicStitch"
+  op: "DynamicStitch"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/range"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/mod"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Fill"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Maximum/y"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Maximum"
+  op: "Maximum"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/DynamicStitch"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Maximum/y"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/floordiv"
+  op: "FloorDiv"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Maximum"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/DynamicStitch"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Tile"
+  op: "Tile"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Reshape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/floordiv"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tmultiples"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/AddN_2"
+  op: "AddN"
+  input: "gradients/BatchNorm_1/moments/normalize/Mul_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm_1/moments/normalize/shifted_mean_grad/tuple/control_dependency_1"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/normalize/Mul_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/normalize/divisor_grad/ReciprocalGrad"
+  op: "ReciprocalGrad"
+  input: "BatchNorm_1/moments/normalize/divisor"
+  input: "gradients/AddN_2"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Shape"
+  op: "Shape"
+  input: "dropout_1/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Tile"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Sum"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/mean_ss_grad/Tile"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Neg"
+  op: "Neg"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Sum_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Neg"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Reshape"
+  input: "^gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Reshape"
+  input: "^gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Reshape_1"
+  input: "^gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 3
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape/shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: -1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape"
+  op: "Reshape"
+  input: "BatchNorm_1/moments/sufficient_statistics/Const"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape/shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Size"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/add"
+  op: "Add"
+  input: "BatchNorm_1/moments/sufficient_statistics/Const"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Size"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/mod"
+  op: "FloorMod"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/add"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Size"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/range/start"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/range/delta"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/range"
+  op: "Range"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/range/start"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Size"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/range/delta"
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Fill/value"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Fill"
+  op: "Fill"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Shape_1"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Fill/value"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/DynamicStitch"
+  op: "DynamicStitch"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/range"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/mod"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Fill"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Maximum/y"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Maximum"
+  op: "Maximum"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/DynamicStitch"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Maximum/y"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/floordiv"
+  op: "FloorDiv"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Maximum"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/normalize/divisor_grad/ReciprocalGrad"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/DynamicStitch"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Tile"
+  op: "Tile"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape_1"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/floordiv"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tmultiples"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Rank"
+  op: "Const"
+  device: "/device:CPU:0"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/range_1/start"
+  op: "Const"
+  device: "/device:CPU:0"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/range_1/delta"
+  op: "Const"
+  device: "/device:CPU:0"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/range_1"
+  op: "Range"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/range_1/start"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Rank"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/range_1/delta"
+  device: "/device:CPU:0"
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/ListDiff"
+  op: "ListDiff"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/range_1"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape"
+  device: "/device:CPU:0"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "out_idx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/concat/axis"
+  op: "Const"
+  device: "/device:CPU:0"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/concat"
+  op: "ConcatV2"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/ListDiff"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/concat/axis"
+  device: "/device:CPU:0"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Gather"
+  op: "Gather"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape"
+  device: "/device:CPU:0"
+  attr {
+    key: "Tindices"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tparams"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "validate_indices"
     value {
       b: true
     }
   }
 }
 node {
-  name: "gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/group_deps"
-  op: "NoOp"
-  input: "^gradients/BatchNorm_1/FusedBatchNorm_grad/FusedBatchNormGrad"
-}
-node {
-  name: "gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/control_dependency"
-  op: "Identity"
-  input: "gradients/BatchNorm_1/FusedBatchNorm_grad/FusedBatchNormGrad"
-  input: "^gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/group_deps"
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Const"
+  op: "Const"
+  device: "/device:CPU:0"
   attr {
-    key: "T"
+    key: "dtype"
     value {
-      type: DT_FLOAT
+      type: DT_INT32
     }
   }
   attr {
-    key: "_class"
+    key: "value"
     value {
-      list {
-        s: "loc:@gradients/BatchNorm_1/FusedBatchNorm_grad/FusedBatchNormGrad"
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 0
       }
     }
   }
 }
 node {
-  name: "gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/control_dependency_1"
-  op: "Identity"
-  input: "gradients/BatchNorm_1/FusedBatchNorm_grad/FusedBatchNormGrad:1"
-  input: "^gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/group_deps"
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Prod"
+  op: "Prod"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Gather"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Const"
+  device: "/device:CPU:0"
   attr {
     key: "T"
     value {
-      type: DT_FLOAT
+      type: DT_INT32
     }
   }
   attr {
-    key: "_class"
+    key: "Tidx"
     value {
-      list {
-        s: "loc:@gradients/BatchNorm_1/FusedBatchNorm_grad/FusedBatchNormGrad"
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Gather_1"
+  op: "Gather"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/ListDiff"
+  device: "/device:CPU:0"
+  attr {
+    key: "Tindices"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tparams"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "validate_indices"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Const_1"
+  op: "Const"
+  device: "/device:CPU:0"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 0
       }
     }
   }
 }
 node {
-  name: "gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/control_dependency_2"
-  op: "Identity"
-  input: "gradients/BatchNorm_1/FusedBatchNorm_grad/FusedBatchNormGrad:2"
-  input: "^gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/group_deps"
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Prod_1"
+  op: "Prod"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Gather_1"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Const_1"
+  device: "/device:CPU:0"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/transpose"
+  op: "Transpose"
+  input: "BatchNorm_1/moments/sufficient_statistics/Gather"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/concat"
   attr {
     key: "T"
     value {
@@ -5383,19 +9925,97 @@ node {
     }
   }
   attr {
-    key: "_class"
+    key: "Tperm"
     value {
-      list {
-        s: "loc:@gradients/BatchNorm_1/FusedBatchNorm_grad/FusedBatchNormGrad"
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Shape_2"
+  op: "Shape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/transpose"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape_2/shape"
+  op: "Pack"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Prod"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Prod_1"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "axis"
+    value {
+      i: 0
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape_2"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/transpose"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape_2/shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Cumprod/axis"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
       }
     }
   }
 }
 node {
-  name: "gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/control_dependency_3"
-  op: "Identity"
-  input: "gradients/BatchNorm_1/FusedBatchNorm_grad/FusedBatchNormGrad:3"
-  input: "^gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/group_deps"
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Cumprod"
+  op: "Cumprod"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape_2"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Cumprod/axis"
   attr {
     key: "T"
     value {
@@ -5403,19 +10023,176 @@ node {
     }
   }
   attr {
-    key: "_class"
+    key: "Tidx"
     value {
-      list {
-        s: "loc:@gradients/BatchNorm_1/FusedBatchNorm_grad/FusedBatchNormGrad"
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "exclusive"
+    value {
+      b: true
+    }
+  }
+  attr {
+    key: "reverse"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Cumprod_1/axis"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
       }
     }
   }
 }
 node {
-  name: "gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/control_dependency_4"
-  op: "Identity"
-  input: "gradients/BatchNorm_1/FusedBatchNorm_grad/FusedBatchNormGrad:4"
-  input: "^gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/group_deps"
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Cumprod_1"
+  op: "Cumprod"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape_2"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Cumprod_1/axis"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "exclusive"
+    value {
+      b: true
+    }
+  }
+  attr {
+    key: "reverse"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/mul"
+  op: "Mul"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Cumprod"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Cumprod_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape_3"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/mul"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Shape_2"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/InvertPermutation"
+  op: "InvertPermutation"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/concat"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/transpose_1"
+  op: "Transpose"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape_3"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/InvertPermutation"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tperm"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/mul_1"
+  op: "Mul"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Tile"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/transpose_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape_4"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/mul_1"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/AddN_3"
+  op: "AddN"
+  input: "gradients/BatchNorm_1/moments/Reshape_grad/Reshape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/tuple/control_dependency_1"
+  attr {
+    key: "N"
+    value {
+      i: 3
+    }
+  }
   attr {
     key: "T"
     value {
@@ -5426,7 +10203,330 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@gradients/BatchNorm_1/FusedBatchNorm_grad/FusedBatchNormGrad"
+        s: "loc:@gradients/BatchNorm_1/moments/Reshape_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/Shape"
+  op: "Const"
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm_1/moments/sufficient_statistics/Cast"
+      }
+    }
+  }
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 4
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/Size"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 3
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/ExpandDims/dim"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/ExpandDims"
+  op: "ExpandDims"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/Size"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/ExpandDims/dim"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tdim"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/strided_slice/stack"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/strided_slice/stack_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/strided_slice/stack_2"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/strided_slice"
+  op: "StridedSlice"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/Shape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/strided_slice/stack"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/strided_slice/stack_1"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/strided_slice/stack_2"
+  attr {
+    key: "Index"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "begin_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "ellipsis_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "end_mask"
+    value {
+      i: 1
+    }
+  }
+  attr {
+    key: "new_axis_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "shrink_axis_mask"
+    value {
+      i: 0
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/concat/axis"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/concat"
+  op: "ConcatV2"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/ExpandDims"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/strided_slice"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/concat/axis"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/count_grad/Reshape_4"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/concat"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/Reshape_1"
+  op: "Reshape"
+  input: "BatchNorm_1/moments/sufficient_statistics/Gather/indices"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Gather_grad/ExpandDims"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/AddN_4"
+  op: "AddN"
+  input: "gradients/BatchNorm_1/batchnorm/mul_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/SquaredDifference_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm_1/moments/sufficient_statistics/Sub_grad/tuple/control_dependency"
+  attr {
+    key: "N"
+    value {
+      i: 3
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm_1/batchnorm/mul_grad/Reshape"
       }
     }
   }
@@ -5480,7 +10580,7 @@ node {
 node {
   name: "gradients/dropout_1/mul_grad/mul"
   op: "Mul"
-  input: "gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/control_dependency"
+  input: "gradients/AddN_4"
   input: "dropout_1/Floor"
   attr {
     key: "T"
@@ -5535,7 +10635,7 @@ node {
   name: "gradients/dropout_1/mul_grad/mul_1"
   op: "Mul"
   input: "dropout_1/div"
-  input: "gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/control_dependency"
+  input: "gradients/AddN_4"
   attr {
     key: "T"
     value {
@@ -6118,16 +11218,9 @@ node {
   }
 }
 node {
-  name: "gradients/Conv2D_1_grad/ShapeN"
-  op: "ShapeN"
+  name: "gradients/Conv2D_1_grad/Shape"
+  op: "Shape"
   input: "Elu"
-  input: "Variable_2/read"
-  attr {
-    key: "N"
-    value {
-      i: 2
-    }
-  }
   attr {
     key: "T"
     value {
@@ -6144,7 +11237,7 @@ node {
 node {
   name: "gradients/Conv2D_1_grad/Conv2DBackpropInput"
   op: "Conv2DBackpropInput"
-  input: "gradients/Conv2D_1_grad/ShapeN"
+  input: "gradients/Conv2D_1_grad/Shape"
   input: "Variable_2/read"
   input: "gradients/add_1_grad/tuple/control_dependency"
   attr {
@@ -6184,10 +11277,34 @@ node {
   }
 }
 node {
+  name: "gradients/Conv2D_1_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\006\000\000\000\006\000\000\000(\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
   name: "gradients/Conv2D_1_grad/Conv2DBackpropFilter"
   op: "Conv2DBackpropFilter"
   input: "Elu"
-  input: "gradients/Conv2D_1_grad/ShapeN:1"
+  input: "gradients/Conv2D_1_grad/Shape_1"
   input: "gradients/add_1_grad/tuple/control_dependency"
   attr {
     key: "T"
@@ -6284,57 +11401,63 @@ node {
   }
 }
 node {
-  name: "gradients/zeros_like_5"
-  op: "ZerosLike"
-  input: "BatchNorm/FusedBatchNorm:1"
+  name: "gradients/BatchNorm/batchnorm/add_1_grad/Shape"
+  op: "Shape"
+  input: "BatchNorm/batchnorm/mul"
   attr {
     key: "T"
     value {
       type: DT_FLOAT
     }
   }
-}
-node {
-  name: "gradients/zeros_like_6"
-  op: "ZerosLike"
-  input: "BatchNorm/FusedBatchNorm:2"
   attr {
-    key: "T"
+    key: "out_type"
     value {
-      type: DT_FLOAT
+      type: DT_INT32
     }
   }
 }
 node {
-  name: "gradients/zeros_like_7"
-  op: "ZerosLike"
-  input: "BatchNorm/FusedBatchNorm:3"
+  name: "gradients/BatchNorm/batchnorm/add_1_grad/Shape_1"
+  op: "Const"
   attr {
-    key: "T"
+    key: "dtype"
     value {
-      type: DT_FLOAT
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
     }
   }
 }
 node {
-  name: "gradients/zeros_like_8"
-  op: "ZerosLike"
-  input: "BatchNorm/FusedBatchNorm:4"
+  name: "gradients/BatchNorm/batchnorm/add_1_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/Shape"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/Shape_1"
   attr {
     key: "T"
     value {
-      type: DT_FLOAT
+      type: DT_INT32
     }
   }
 }
 node {
-  name: "gradients/BatchNorm/FusedBatchNorm_grad/FusedBatchNormGrad"
-  op: "FusedBatchNormGrad"
+  name: "gradients/BatchNorm/batchnorm/add_1_grad/Sum"
+  op: "Sum"
   input: "gradients/Elu_grad/EluGrad"
-  input: "dropout/mul"
-  input: "BatchNorm/Const"
-  input: "BatchNorm/FusedBatchNorm:3"
-  input: "BatchNorm/FusedBatchNorm:4"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/BroadcastGradientArgs"
   attr {
     key: "T"
     value {
@@ -6342,74 +11465,3604 @@ node {
     }
   }
   attr {
-    key: "data_format"
+    key: "Tidx"
     value {
-      s: "NHWC"
+      type: DT_INT32
     }
   }
   attr {
-    key: "epsilon"
+    key: "keep_dims"
     value {
-      f: 0.0010000000474974513
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_1_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/Sum"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
     }
   }
   attr {
-    key: "is_training"
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_1_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/Elu_grad/EluGrad"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_1_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/Sum_1"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_1_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm/batchnorm/add_1_grad/Reshape"
+  input: "^gradients/BatchNorm/batchnorm/add_1_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_1_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/Reshape"
+  input: "^gradients/BatchNorm/batchnorm/add_1_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/batchnorm/add_1_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_1_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/Reshape_1"
+  input: "^gradients/BatchNorm/batchnorm/add_1_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/batchnorm/add_1_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_grad/Shape"
+  op: "Shape"
+  input: "dropout/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/Shape"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_grad/mul"
+  op: "Mul"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/tuple/control_dependency"
+  input: "BatchNorm/batchnorm/Rsqrt"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/mul"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/Sum"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_grad/mul_1"
+  op: "Mul"
+  input: "dropout/mul"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/tuple/control_dependency"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/mul_1"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/Sum_1"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm/batchnorm/mul_grad/Reshape"
+  input: "^gradients/BatchNorm/batchnorm/mul_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/Reshape"
+  input: "^gradients/BatchNorm/batchnorm/mul_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/batchnorm/mul_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/Reshape_1"
+  input: "^gradients/BatchNorm/batchnorm/mul_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/batchnorm/mul_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/sub_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/sub_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/sub_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/Shape"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/sub_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/sub_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/Sum"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/sub_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm/batchnorm/add_1_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/sub_grad/Neg"
+  op: "Neg"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/Sum_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/sub_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/Neg"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/sub_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm/batchnorm/sub_grad/Reshape"
+  input: "^gradients/BatchNorm/batchnorm/sub_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/sub_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/Reshape"
+  input: "^gradients/BatchNorm/batchnorm/sub_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/batchnorm/sub_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/sub_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/Reshape_1"
+  input: "^gradients/BatchNorm/batchnorm/sub_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/batchnorm/sub_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/Reshape_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 40
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/Reshape_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm/Reshape_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_1_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_1_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_1_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/Shape"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_1_grad/mul"
+  op: "Mul"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/tuple/control_dependency_1"
+  input: "BatchNorm/batchnorm/Rsqrt"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_1_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/mul"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_1_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/Sum"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_1_grad/mul_1"
+  op: "Mul"
+  input: "BatchNorm/moments/normalize/mean"
+  input: "gradients/BatchNorm/batchnorm/sub_grad/tuple/control_dependency_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_1_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/mul_1"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_1_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/Sum_1"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_1_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm/batchnorm/mul_1_grad/Reshape"
+  input: "^gradients/BatchNorm/batchnorm/mul_1_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_1_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/Reshape"
+  input: "^gradients/BatchNorm/batchnorm/mul_1_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/batchnorm/mul_1_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/mul_1_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/Reshape_1"
+  input: "^gradients/BatchNorm/batchnorm/mul_1_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/batchnorm/mul_1_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/mean_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/mean_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/mean_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm/moments/normalize/mean_grad/Shape"
+  input: "gradients/BatchNorm/moments/normalize/mean_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/mean_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm/moments/normalize/mean_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/mean_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/normalize/mean_grad/Sum"
+  input: "gradients/BatchNorm/moments/normalize/mean_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/mean_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm/moments/normalize/mean_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/mean_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/normalize/mean_grad/Sum_1"
+  input: "gradients/BatchNorm/moments/normalize/mean_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/mean_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm/moments/normalize/mean_grad/Reshape"
+  input: "^gradients/BatchNorm/moments/normalize/mean_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/mean_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm/moments/normalize/mean_grad/Reshape"
+  input: "^gradients/BatchNorm/moments/normalize/mean_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/normalize/mean_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/mean_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm/moments/normalize/mean_grad/Reshape_1"
+  input: "^gradients/BatchNorm/moments/normalize/mean_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/normalize/mean_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/AddN_5"
+  op: "AddN"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm/batchnorm/mul_1_grad/tuple/control_dependency_1"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/batchnorm/mul_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/Rsqrt_grad/RsqrtGrad"
+  op: "RsqrtGrad"
+  input: "BatchNorm/batchnorm/Rsqrt"
+  input: "gradients/AddN_5"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/Reshape_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/Reshape_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/normalize/mean_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm/moments/Reshape_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+          }
+        }
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm/batchnorm/add_grad/Shape"
+  input: "gradients/BatchNorm/batchnorm/add_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm/batchnorm/Rsqrt_grad/RsqrtGrad"
+  input: "gradients/BatchNorm/batchnorm/add_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/batchnorm/add_grad/Sum"
+  input: "gradients/BatchNorm/batchnorm/add_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm/batchnorm/Rsqrt_grad/RsqrtGrad"
+  input: "gradients/BatchNorm/batchnorm/add_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm/batchnorm/add_grad/Sum_1"
+  input: "gradients/BatchNorm/batchnorm/add_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm/batchnorm/add_grad/Reshape"
+  input: "^gradients/BatchNorm/batchnorm/add_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm/batchnorm/add_grad/Reshape"
+  input: "^gradients/BatchNorm/batchnorm/add_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/batchnorm/add_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/batchnorm/add_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm/batchnorm/add_grad/Reshape_1"
+  input: "^gradients/BatchNorm/batchnorm/add_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/batchnorm/add_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/variance_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/variance_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/variance_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/Shape"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/variance_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm/batchnorm/add_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/variance_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/Sum"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/variance_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm/batchnorm/add_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/variance_grad/Neg"
+  op: "Neg"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/Sum_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/variance_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/Neg"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/variance_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm/moments/normalize/variance_grad/Reshape"
+  input: "^gradients/BatchNorm/moments/normalize/variance_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/variance_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/Reshape"
+  input: "^gradients/BatchNorm/moments/normalize/variance_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/normalize/variance_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/variance_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/Reshape_1"
+  input: "^gradients/BatchNorm/moments/normalize/variance_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/normalize/variance_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Mul_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Mul_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+          }
+        }
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Mul_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/Shape"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Mul_grad/mul"
+  op: "Mul"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/tuple/control_dependency"
+  input: "BatchNorm/moments/normalize/divisor"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Mul_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/mul"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Mul_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/Sum"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Mul_grad/mul_1"
+  op: "Mul"
+  input: "BatchNorm/moments/sufficient_statistics/var_ss"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/tuple/control_dependency"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Mul_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/mul_1"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Mul_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/Sum_1"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Mul_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm/moments/normalize/Mul_grad/Reshape"
+  input: "^gradients/BatchNorm/moments/normalize/Mul_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Mul_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/Reshape"
+  input: "^gradients/BatchNorm/moments/normalize/Mul_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/normalize/Mul_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Mul_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/Reshape_1"
+  input: "^gradients/BatchNorm/moments/normalize/Mul_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/normalize/Mul_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Square_grad/mul/x"
+  op: "Const"
+  input: "^gradients/BatchNorm/moments/normalize/variance_grad/tuple/control_dependency_1"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 2.0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Square_grad/mul"
+  op: "Mul"
+  input: "gradients/BatchNorm/moments/normalize/Square_grad/mul/x"
+  input: "BatchNorm/moments/normalize/shifted_mean"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/Square_grad/mul_1"
+  op: "Mul"
+  input: "gradients/BatchNorm/moments/normalize/variance_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm/moments/normalize/Square_grad/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Shape"
+  op: "Shape"
+  input: "BatchNorm/moments/sufficient_statistics/SquaredDifference"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Size"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 4
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/add"
+  op: "Add"
+  input: "BatchNorm/moments/sufficient_statistics/var_ss/reduction_indices"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Size"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/mod"
+  op: "FloorMod"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/add"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Size"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 3
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/range/start"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/range/delta"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/range"
+  op: "Range"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/range/start"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Size"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/range/delta"
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Fill/value"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Fill"
+  op: "Fill"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Shape_1"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Fill/value"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/DynamicStitch"
+  op: "DynamicStitch"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/range"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/mod"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Shape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Fill"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Maximum/y"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Maximum"
+  op: "Maximum"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/DynamicStitch"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Maximum/y"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/floordiv"
+  op: "FloorDiv"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Shape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Maximum"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/DynamicStitch"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Tile"
+  op: "Tile"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Reshape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/floordiv"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tmultiples"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/AddN_6"
+  op: "AddN"
+  input: "gradients/BatchNorm/moments/normalize/mean_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm/moments/normalize/Square_grad/mul_1"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/normalize/mean_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+          }
+        }
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Shape"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/mul"
+  op: "Mul"
+  input: "gradients/AddN_6"
+  input: "BatchNorm/moments/normalize/divisor"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/mul"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Sum"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/mul_1"
+  op: "Mul"
+  input: "BatchNorm/moments/sufficient_statistics/mean_ss"
+  input: "gradients/AddN_6"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/mul_1"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Sum_1"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm/moments/normalize/shifted_mean_grad/Reshape"
+  input: "^gradients/BatchNorm/moments/normalize/shifted_mean_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Reshape"
+  input: "^gradients/BatchNorm/moments/normalize/shifted_mean_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/normalize/shifted_mean_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/Reshape_1"
+  input: "^gradients/BatchNorm/moments/normalize/shifted_mean_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/normalize/shifted_mean_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Shape"
+  op: "Shape"
+  input: "dropout/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Shape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/scalar"
+  op: "Const"
+  input: "^gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Tile"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_FLOAT
+        tensor_shape {
+        }
+        float_val: 2.0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/mul"
+  op: "Mul"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/scalar"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Tile"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/sub"
+  op: "Sub"
+  input: "dropout/mul"
+  input: "BatchNorm/moments/StopGradient"
+  input: "^gradients/BatchNorm/moments/sufficient_statistics/var_ss_grad/Tile"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/mul_1"
+  op: "Mul"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/mul"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/sub"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/mul_1"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Sum"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/mul_1"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Sum_1"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Neg"
+  op: "Neg"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Reshape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Reshape"
+  input: "^gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Neg"
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Reshape"
+  input: "^gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Neg"
+  input: "^gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/Neg"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Shape"
+  op: "Shape"
+  input: "BatchNorm/moments/sufficient_statistics/Sub"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Size"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 4
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/add"
+  op: "Add"
+  input: "BatchNorm/moments/sufficient_statistics/mean_ss/reduction_indices"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Size"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/mod"
+  op: "FloorMod"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/add"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Size"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 3
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/range/start"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/range/delta"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/range"
+  op: "Range"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/range/start"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Size"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/range/delta"
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Fill/value"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Fill"
+  op: "Fill"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Shape_1"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Fill/value"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/DynamicStitch"
+  op: "DynamicStitch"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/range"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/mod"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Shape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Fill"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Maximum/y"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Maximum"
+  op: "Maximum"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/DynamicStitch"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Maximum/y"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/floordiv"
+  op: "FloorDiv"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Shape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Maximum"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/DynamicStitch"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Tile"
+  op: "Tile"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Reshape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/floordiv"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tmultiples"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/AddN_7"
+  op: "AddN"
+  input: "gradients/BatchNorm/moments/normalize/Mul_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm/moments/normalize/shifted_mean_grad/tuple/control_dependency_1"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/normalize/Mul_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/normalize/divisor_grad/ReciprocalGrad"
+  op: "ReciprocalGrad"
+  input: "BatchNorm/moments/normalize/divisor"
+  input: "gradients/AddN_7"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Shape"
+  op: "Shape"
+  input: "dropout/mul"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\001\000\000\000\001\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/BroadcastGradientArgs"
+  op: "BroadcastGradientArgs"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Shape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Sum"
+  op: "Sum"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Tile"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/BroadcastGradientArgs"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Sum"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Sum_1"
+  op: "Sum"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/mean_ss_grad/Tile"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/BroadcastGradientArgs:1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Neg"
+  op: "Neg"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Sum_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Neg"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Shape_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/tuple/group_deps"
+  op: "NoOp"
+  input: "^gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Reshape"
+  input: "^gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Reshape_1"
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/tuple/control_dependency"
+  op: "Identity"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Reshape"
+  input: "^gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/tuple/control_dependency_1"
+  op: "Identity"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Reshape_1"
+  input: "^gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/tuple/group_deps"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/Reshape_1"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 3
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape/shape"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: -1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape"
+  op: "Reshape"
+  input: "BatchNorm/moments/sufficient_statistics/Const"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape/shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Size"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/add"
+  op: "Add"
+  input: "BatchNorm/moments/sufficient_statistics/Const"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Size"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/mod"
+  op: "FloorMod"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/add"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Size"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/range/start"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/range/delta"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/range"
+  op: "Range"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/range/start"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Size"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/range/delta"
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Fill/value"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Fill"
+  op: "Fill"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Shape_1"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Fill/value"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/DynamicStitch"
+  op: "DynamicStitch"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/range"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/mod"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Shape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Fill"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Maximum/y"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Maximum"
+  op: "Maximum"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/DynamicStitch"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Maximum/y"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/floordiv"
+  op: "FloorDiv"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Shape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Maximum"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape_1"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/normalize/divisor_grad/ReciprocalGrad"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/DynamicStitch"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Tile"
+  op: "Tile"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape_1"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/floordiv"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tmultiples"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Rank"
+  op: "Const"
+  device: "/device:CPU:0"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/range_1/start"
+  op: "Const"
+  device: "/device:CPU:0"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/range_1/delta"
+  op: "Const"
+  device: "/device:CPU:0"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/range_1"
+  op: "Range"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/range_1/start"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Rank"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/range_1/delta"
+  device: "/device:CPU:0"
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/ListDiff"
+  op: "ListDiff"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/range_1"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape"
+  device: "/device:CPU:0"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "out_idx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/concat/axis"
+  op: "Const"
+  device: "/device:CPU:0"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/concat"
+  op: "ConcatV2"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/ListDiff"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/concat/axis"
+  device: "/device:CPU:0"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Gather"
+  op: "Gather"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Shape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape"
+  device: "/device:CPU:0"
+  attr {
+    key: "Tindices"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tparams"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "validate_indices"
     value {
       b: true
     }
   }
 }
 node {
-  name: "gradients/BatchNorm/FusedBatchNorm_grad/tuple/group_deps"
-  op: "NoOp"
-  input: "^gradients/BatchNorm/FusedBatchNorm_grad/FusedBatchNormGrad"
-}
-node {
-  name: "gradients/BatchNorm/FusedBatchNorm_grad/tuple/control_dependency"
-  op: "Identity"
-  input: "gradients/BatchNorm/FusedBatchNorm_grad/FusedBatchNormGrad"
-  input: "^gradients/BatchNorm/FusedBatchNorm_grad/tuple/group_deps"
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Const"
+  op: "Const"
+  device: "/device:CPU:0"
   attr {
-    key: "T"
+    key: "dtype"
     value {
-      type: DT_FLOAT
+      type: DT_INT32
     }
   }
   attr {
-    key: "_class"
+    key: "value"
     value {
-      list {
-        s: "loc:@gradients/BatchNorm/FusedBatchNorm_grad/FusedBatchNormGrad"
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 0
       }
     }
   }
 }
 node {
-  name: "gradients/BatchNorm/FusedBatchNorm_grad/tuple/control_dependency_1"
-  op: "Identity"
-  input: "gradients/BatchNorm/FusedBatchNorm_grad/FusedBatchNormGrad:1"
-  input: "^gradients/BatchNorm/FusedBatchNorm_grad/tuple/group_deps"
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Prod"
+  op: "Prod"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Gather"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Const"
+  device: "/device:CPU:0"
   attr {
     key: "T"
     value {
-      type: DT_FLOAT
+      type: DT_INT32
     }
   }
   attr {
-    key: "_class"
+    key: "Tidx"
     value {
-      list {
-        s: "loc:@gradients/BatchNorm/FusedBatchNorm_grad/FusedBatchNormGrad"
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Gather_1"
+  op: "Gather"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Shape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/ListDiff"
+  device: "/device:CPU:0"
+  attr {
+    key: "Tindices"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tparams"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "validate_indices"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Const_1"
+  op: "Const"
+  device: "/device:CPU:0"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 0
       }
     }
   }
 }
 node {
-  name: "gradients/BatchNorm/FusedBatchNorm_grad/tuple/control_dependency_2"
-  op: "Identity"
-  input: "gradients/BatchNorm/FusedBatchNorm_grad/FusedBatchNormGrad:2"
-  input: "^gradients/BatchNorm/FusedBatchNorm_grad/tuple/group_deps"
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Prod_1"
+  op: "Prod"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Gather_1"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Const_1"
+  device: "/device:CPU:0"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "keep_dims"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/transpose"
+  op: "Transpose"
+  input: "BatchNorm/moments/sufficient_statistics/Gather"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/concat"
   attr {
     key: "T"
     value {
@@ -6417,19 +15070,97 @@ node {
     }
   }
   attr {
-    key: "_class"
+    key: "Tperm"
     value {
-      list {
-        s: "loc:@gradients/BatchNorm/FusedBatchNorm_grad/FusedBatchNormGrad"
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Shape_2"
+  op: "Shape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/transpose"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "out_type"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape_2/shape"
+  op: "Pack"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Prod"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Prod_1"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "axis"
+    value {
+      i: 0
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape_2"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/transpose"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape_2/shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Cumprod/axis"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
       }
     }
   }
 }
 node {
-  name: "gradients/BatchNorm/FusedBatchNorm_grad/tuple/control_dependency_3"
-  op: "Identity"
-  input: "gradients/BatchNorm/FusedBatchNorm_grad/FusedBatchNormGrad:3"
-  input: "^gradients/BatchNorm/FusedBatchNorm_grad/tuple/group_deps"
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Cumprod"
+  op: "Cumprod"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape_2"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Cumprod/axis"
   attr {
     key: "T"
     value {
@@ -6437,19 +15168,176 @@ node {
     }
   }
   attr {
-    key: "_class"
+    key: "Tidx"
     value {
-      list {
-        s: "loc:@gradients/BatchNorm/FusedBatchNorm_grad/FusedBatchNormGrad"
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "exclusive"
+    value {
+      b: true
+    }
+  }
+  attr {
+    key: "reverse"
+    value {
+      b: false
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Cumprod_1/axis"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
       }
     }
   }
 }
 node {
-  name: "gradients/BatchNorm/FusedBatchNorm_grad/tuple/control_dependency_4"
-  op: "Identity"
-  input: "gradients/BatchNorm/FusedBatchNorm_grad/FusedBatchNormGrad:4"
-  input: "^gradients/BatchNorm/FusedBatchNorm_grad/tuple/group_deps"
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Cumprod_1"
+  op: "Cumprod"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape_2"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Cumprod_1/axis"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "exclusive"
+    value {
+      b: true
+    }
+  }
+  attr {
+    key: "reverse"
+    value {
+      b: true
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/mul"
+  op: "Mul"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Cumprod"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Cumprod_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape_3"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/mul"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Shape_2"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/InvertPermutation"
+  op: "InvertPermutation"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/concat"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/transpose_1"
+  op: "Transpose"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape_3"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/InvertPermutation"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tperm"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/mul_1"
+  op: "Mul"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Tile"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/transpose_1"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape_4"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/mul_1"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Shape"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/AddN_8"
+  op: "AddN"
+  input: "gradients/BatchNorm/moments/Reshape_grad/Reshape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/tuple/control_dependency_1"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/tuple/control_dependency_1"
+  attr {
+    key: "N"
+    value {
+      i: 3
+    }
+  }
   attr {
     key: "T"
     value {
@@ -6460,7 +15348,330 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@gradients/BatchNorm/FusedBatchNorm_grad/FusedBatchNormGrad"
+        s: "loc:@gradients/BatchNorm/moments/Reshape_grad/Reshape"
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/Shape"
+  op: "Const"
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@BatchNorm/moments/sufficient_statistics/Cast"
+      }
+    }
+  }
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 4
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/Size"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 3
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/ExpandDims/dim"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/ExpandDims"
+  op: "ExpandDims"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/Size"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/ExpandDims/dim"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tdim"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/strided_slice/stack"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/strided_slice/stack_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/strided_slice/stack_2"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 1
+          }
+        }
+        int_val: 1
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/strided_slice"
+  op: "StridedSlice"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/Shape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/strided_slice/stack"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/strided_slice/stack_1"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/strided_slice/stack_2"
+  attr {
+    key: "Index"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "begin_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "ellipsis_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "end_mask"
+    value {
+      i: 1
+    }
+  }
+  attr {
+    key: "new_axis_mask"
+    value {
+      i: 0
+    }
+  }
+  attr {
+    key: "shrink_axis_mask"
+    value {
+      i: 0
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/concat/axis"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+        }
+        int_val: 0
+      }
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/concat"
+  op: "ConcatV2"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/ExpandDims"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/strided_slice"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/concat/axis"
+  attr {
+    key: "N"
+    value {
+      i: 2
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tidx"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/Reshape"
+  op: "Reshape"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/count_grad/Reshape_4"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/concat"
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/Reshape_1"
+  op: "Reshape"
+  input: "BatchNorm/moments/sufficient_statistics/Gather/indices"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Gather_grad/ExpandDims"
+  attr {
+    key: "T"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "Tshape"
+    value {
+      type: DT_INT32
+    }
+  }
+}
+node {
+  name: "gradients/AddN_9"
+  op: "AddN"
+  input: "gradients/BatchNorm/batchnorm/mul_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/SquaredDifference_grad/tuple/control_dependency"
+  input: "gradients/BatchNorm/moments/sufficient_statistics/Sub_grad/tuple/control_dependency"
+  attr {
+    key: "N"
+    value {
+      i: 3
+    }
+  }
+  attr {
+    key: "T"
+    value {
+      type: DT_FLOAT
+    }
+  }
+  attr {
+    key: "_class"
+    value {
+      list {
+        s: "loc:@gradients/BatchNorm/batchnorm/mul_grad/Reshape"
       }
     }
   }
@@ -6514,7 +15725,7 @@ node {
 node {
   name: "gradients/dropout/mul_grad/mul"
   op: "Mul"
-  input: "gradients/BatchNorm/FusedBatchNorm_grad/tuple/control_dependency"
+  input: "gradients/AddN_9"
   input: "dropout/Floor"
   attr {
     key: "T"
@@ -6569,7 +15780,7 @@ node {
   name: "gradients/dropout/mul_grad/mul_1"
   op: "Mul"
   input: "dropout/div"
-  input: "gradients/BatchNorm/FusedBatchNorm_grad/tuple/control_dependency"
+  input: "gradients/AddN_9"
   attr {
     key: "T"
     value {
@@ -7089,16 +16300,9 @@ node {
   }
 }
 node {
-  name: "gradients/Conv2D_grad/ShapeN"
-  op: "ShapeN"
+  name: "gradients/Conv2D_grad/Shape"
+  op: "Shape"
   input: "Reshape"
-  input: "Variable/read"
-  attr {
-    key: "N"
-    value {
-      i: 2
-    }
-  }
   attr {
     key: "T"
     value {
@@ -7115,7 +16319,7 @@ node {
 node {
   name: "gradients/Conv2D_grad/Conv2DBackpropInput"
   op: "Conv2DBackpropInput"
-  input: "gradients/Conv2D_grad/ShapeN"
+  input: "gradients/Conv2D_grad/Shape"
   input: "Variable/read"
   input: "gradients/add_grad/tuple/control_dependency"
   attr {
@@ -7155,10 +16359,34 @@ node {
   }
 }
 node {
+  name: "gradients/Conv2D_grad/Shape_1"
+  op: "Const"
+  attr {
+    key: "dtype"
+    value {
+      type: DT_INT32
+    }
+  }
+  attr {
+    key: "value"
+    value {
+      tensor {
+        dtype: DT_INT32
+        tensor_shape {
+          dim {
+            size: 4
+          }
+        }
+        tensor_content: "\006\000\000\000\031\000\000\000\001\000\000\000(\000\000\000"
+      }
+    }
+  }
+}
+node {
   name: "gradients/Conv2D_grad/Conv2DBackpropFilter"
   op: "Conv2DBackpropFilter"
   input: "Reshape"
-  input: "gradients/Conv2D_grad/ShapeN:1"
+  input: "gradients/Conv2D_grad/Shape_1"
   input: "gradients/add_grad/tuple/control_dependency"
   attr {
     key: "T"
@@ -7249,7 +16477,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -7278,7 +16506,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -7323,7 +16551,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -7354,7 +16582,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -7366,7 +16594,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -7395,7 +16623,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -7440,7 +16668,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -7471,22 +16699,14 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
 }
 node {
-  name: "Variable/Adam/Initializer/zeros"
+  name: "zeros"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -7570,7 +16790,7 @@ node {
   name: "Variable/Adam/Assign"
   op: "Assign"
   input: "Variable/Adam"
-  input: "Variable/Adam/Initializer/zeros"
+  input: "zeros"
   attr {
     key: "T"
     value {
@@ -7618,16 +16838,8 @@ node {
   }
 }
 node {
-  name: "Variable/Adam_1/Initializer/zeros"
+  name: "zeros_1"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -7711,7 +16923,7 @@ node {
   name: "Variable/Adam_1/Assign"
   op: "Assign"
   input: "Variable/Adam_1"
-  input: "Variable/Adam_1/Initializer/zeros"
+  input: "zeros_1"
   attr {
     key: "T"
     value {
@@ -7759,16 +16971,8 @@ node {
   }
 }
 node {
-  name: "Variable_1/Adam/Initializer/zeros"
+  name: "zeros_2"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_1"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -7834,7 +17038,7 @@ node {
   name: "Variable_1/Adam/Assign"
   op: "Assign"
   input: "Variable_1/Adam"
-  input: "Variable_1/Adam/Initializer/zeros"
+  input: "zeros_2"
   attr {
     key: "T"
     value {
@@ -7882,16 +17086,8 @@ node {
   }
 }
 node {
-  name: "Variable_1/Adam_1/Initializer/zeros"
+  name: "zeros_3"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_1"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -7957,7 +17153,7 @@ node {
   name: "Variable_1/Adam_1/Assign"
   op: "Assign"
   input: "Variable_1/Adam_1"
-  input: "Variable_1/Adam_1/Initializer/zeros"
+  input: "zeros_3"
   attr {
     key: "T"
     value {
@@ -8005,16 +17201,8 @@ node {
   }
 }
 node {
-  name: "BatchNorm/beta/Adam/Initializer/zeros"
+  name: "zeros_4"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm/beta"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -8080,7 +17268,7 @@ node {
   name: "BatchNorm/beta/Adam/Assign"
   op: "Assign"
   input: "BatchNorm/beta/Adam"
-  input: "BatchNorm/beta/Adam/Initializer/zeros"
+  input: "zeros_4"
   attr {
     key: "T"
     value {
@@ -8128,16 +17316,8 @@ node {
   }
 }
 node {
-  name: "BatchNorm/beta/Adam_1/Initializer/zeros"
+  name: "zeros_5"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm/beta"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -8203,7 +17383,7 @@ node {
   name: "BatchNorm/beta/Adam_1/Assign"
   op: "Assign"
   input: "BatchNorm/beta/Adam_1"
-  input: "BatchNorm/beta/Adam_1/Initializer/zeros"
+  input: "zeros_5"
   attr {
     key: "T"
     value {
@@ -8251,16 +17431,8 @@ node {
   }
 }
 node {
-  name: "Variable_2/Adam/Initializer/zeros"
+  name: "zeros_6"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_2"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -8344,7 +17516,7 @@ node {
   name: "Variable_2/Adam/Assign"
   op: "Assign"
   input: "Variable_2/Adam"
-  input: "Variable_2/Adam/Initializer/zeros"
+  input: "zeros_6"
   attr {
     key: "T"
     value {
@@ -8392,16 +17564,8 @@ node {
   }
 }
 node {
-  name: "Variable_2/Adam_1/Initializer/zeros"
+  name: "zeros_7"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_2"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -8485,7 +17649,7 @@ node {
   name: "Variable_2/Adam_1/Assign"
   op: "Assign"
   input: "Variable_2/Adam_1"
-  input: "Variable_2/Adam_1/Initializer/zeros"
+  input: "zeros_7"
   attr {
     key: "T"
     value {
@@ -8533,16 +17697,8 @@ node {
   }
 }
 node {
-  name: "Variable_3/Adam/Initializer/zeros"
+  name: "zeros_8"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_3"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -8608,7 +17764,7 @@ node {
   name: "Variable_3/Adam/Assign"
   op: "Assign"
   input: "Variable_3/Adam"
-  input: "Variable_3/Adam/Initializer/zeros"
+  input: "zeros_8"
   attr {
     key: "T"
     value {
@@ -8656,16 +17812,8 @@ node {
   }
 }
 node {
-  name: "Variable_3/Adam_1/Initializer/zeros"
+  name: "zeros_9"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_3"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -8731,7 +17879,7 @@ node {
   name: "Variable_3/Adam_1/Assign"
   op: "Assign"
   input: "Variable_3/Adam_1"
-  input: "Variable_3/Adam_1/Initializer/zeros"
+  input: "zeros_9"
   attr {
     key: "T"
     value {
@@ -8779,16 +17927,8 @@ node {
   }
 }
 node {
-  name: "BatchNorm_1/beta/Adam/Initializer/zeros"
+  name: "zeros_10"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm_1/beta"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -8854,7 +17994,7 @@ node {
   name: "BatchNorm_1/beta/Adam/Assign"
   op: "Assign"
   input: "BatchNorm_1/beta/Adam"
-  input: "BatchNorm_1/beta/Adam/Initializer/zeros"
+  input: "zeros_10"
   attr {
     key: "T"
     value {
@@ -8902,16 +18042,8 @@ node {
   }
 }
 node {
-  name: "BatchNorm_1/beta/Adam_1/Initializer/zeros"
+  name: "zeros_11"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@BatchNorm_1/beta"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -8977,7 +18109,7 @@ node {
   name: "BatchNorm_1/beta/Adam_1/Assign"
   op: "Assign"
   input: "BatchNorm_1/beta/Adam_1"
-  input: "BatchNorm_1/beta/Adam_1/Initializer/zeros"
+  input: "zeros_11"
   attr {
     key: "T"
     value {
@@ -9025,16 +18157,8 @@ node {
   }
 }
 node {
-  name: "Variable_4/Adam/Initializer/zeros"
+  name: "zeros_12"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_4"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -9106,7 +18230,7 @@ node {
   name: "Variable_4/Adam/Assign"
   op: "Assign"
   input: "Variable_4/Adam"
-  input: "Variable_4/Adam/Initializer/zeros"
+  input: "zeros_12"
   attr {
     key: "T"
     value {
@@ -9154,16 +18278,8 @@ node {
   }
 }
 node {
-  name: "Variable_4/Adam_1/Initializer/zeros"
+  name: "zeros_13"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_4"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -9235,7 +18351,7 @@ node {
   name: "Variable_4/Adam_1/Assign"
   op: "Assign"
   input: "Variable_4/Adam_1"
-  input: "Variable_4/Adam_1/Initializer/zeros"
+  input: "zeros_13"
   attr {
     key: "T"
     value {
@@ -9283,16 +18399,8 @@ node {
   }
 }
 node {
-  name: "Variable_5/Adam/Initializer/zeros"
+  name: "zeros_14"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_5"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -9358,7 +18466,7 @@ node {
   name: "Variable_5/Adam/Assign"
   op: "Assign"
   input: "Variable_5/Adam"
-  input: "Variable_5/Adam/Initializer/zeros"
+  input: "zeros_14"
   attr {
     key: "T"
     value {
@@ -9406,16 +18514,8 @@ node {
   }
 }
 node {
-  name: "Variable_5/Adam_1/Initializer/zeros"
+  name: "zeros_15"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_5"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -9481,7 +18581,7 @@ node {
   name: "Variable_5/Adam_1/Assign"
   op: "Assign"
   input: "Variable_5/Adam_1"
-  input: "Variable_5/Adam_1/Initializer/zeros"
+  input: "zeros_15"
   attr {
     key: "T"
     value {
@@ -9529,16 +18629,8 @@ node {
   }
 }
 node {
-  name: "Variable_6/Adam/Initializer/zeros"
+  name: "zeros_16"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_6"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -9610,7 +18702,7 @@ node {
   name: "Variable_6/Adam/Assign"
   op: "Assign"
   input: "Variable_6/Adam"
-  input: "Variable_6/Adam/Initializer/zeros"
+  input: "zeros_16"
   attr {
     key: "T"
     value {
@@ -9658,16 +18750,8 @@ node {
   }
 }
 node {
-  name: "Variable_6/Adam_1/Initializer/zeros"
+  name: "zeros_17"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_6"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -9739,7 +18823,7 @@ node {
   name: "Variable_6/Adam_1/Assign"
   op: "Assign"
   input: "Variable_6/Adam_1"
-  input: "Variable_6/Adam_1/Initializer/zeros"
+  input: "zeros_17"
   attr {
     key: "T"
     value {
@@ -9787,16 +18871,8 @@ node {
   }
 }
 node {
-  name: "Variable_7/Adam/Initializer/zeros"
+  name: "zeros_18"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_7"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -9862,7 +18938,7 @@ node {
   name: "Variable_7/Adam/Assign"
   op: "Assign"
   input: "Variable_7/Adam"
-  input: "Variable_7/Adam/Initializer/zeros"
+  input: "zeros_18"
   attr {
     key: "T"
     value {
@@ -9910,16 +18986,8 @@ node {
   }
 }
 node {
-  name: "Variable_7/Adam_1/Initializer/zeros"
+  name: "zeros_19"
   op: "Const"
-  attr {
-    key: "_class"
-    value {
-      list {
-        s: "loc:@Variable_7"
-      }
-    }
-  }
   attr {
     key: "dtype"
     value {
@@ -9985,7 +19053,7 @@ node {
   name: "Variable_7/Adam_1/Assign"
   op: "Assign"
   input: "Variable_7/Adam_1"
-  input: "Variable_7/Adam_1/Initializer/zeros"
+  input: "zeros_19"
   attr {
     key: "T"
     value {
@@ -10149,12 +19217,6 @@ node {
       b: false
     }
   }
-  attr {
-    key: "use_nesterov"
-    value {
-      b: false
-    }
-  }
 }
 node {
   name: "Adam/update_Variable_1/ApplyAdam"
@@ -10189,12 +19251,6 @@ node {
       b: false
     }
   }
-  attr {
-    key: "use_nesterov"
-    value {
-      b: false
-    }
-  }
 }
 node {
   name: "Adam/update_BatchNorm/beta/ApplyAdam"
@@ -10208,7 +19264,7 @@ node {
   input: "Adam/beta1"
   input: "Adam/beta2"
   input: "Adam/epsilon"
-  input: "gradients/BatchNorm/FusedBatchNorm_grad/tuple/control_dependency_2"
+  input: "gradients/BatchNorm/Reshape_grad/Reshape"
   attr {
     key: "T"
     value {
@@ -10225,12 +19281,6 @@ node {
   }
   attr {
     key: "use_locking"
-    value {
-      b: false
-    }
-  }
-  attr {
-    key: "use_nesterov"
     value {
       b: false
     }
@@ -10269,12 +19319,6 @@ node {
       b: false
     }
   }
-  attr {
-    key: "use_nesterov"
-    value {
-      b: false
-    }
-  }
 }
 node {
   name: "Adam/update_Variable_3/ApplyAdam"
@@ -10309,12 +19353,6 @@ node {
       b: false
     }
   }
-  attr {
-    key: "use_nesterov"
-    value {
-      b: false
-    }
-  }
 }
 node {
   name: "Adam/update_BatchNorm_1/beta/ApplyAdam"
@@ -10328,7 +19366,7 @@ node {
   input: "Adam/beta1"
   input: "Adam/beta2"
   input: "Adam/epsilon"
-  input: "gradients/BatchNorm_1/FusedBatchNorm_grad/tuple/control_dependency_2"
+  input: "gradients/BatchNorm_1/Reshape_grad/Reshape"
   attr {
     key: "T"
     value {
@@ -10345,12 +19383,6 @@ node {
   }
   attr {
     key: "use_locking"
-    value {
-      b: false
-    }
-  }
-  attr {
-    key: "use_nesterov"
     value {
       b: false
     }
@@ -10389,12 +19421,6 @@ node {
       b: false
     }
   }
-  attr {
-    key: "use_nesterov"
-    value {
-      b: false
-    }
-  }
 }
 node {
   name: "Adam/update_Variable_5/ApplyAdam"
@@ -10425,12 +19451,6 @@ node {
   }
   attr {
     key: "use_locking"
-    value {
-      b: false
-    }
-  }
-  attr {
-    key: "use_nesterov"
     value {
       b: false
     }
@@ -10469,12 +19489,6 @@ node {
       b: false
     }
   }
-  attr {
-    key: "use_nesterov"
-    value {
-      b: false
-    }
-  }
 }
 node {
   name: "Adam/update_Variable_7/ApplyAdam"
@@ -10509,12 +19523,6 @@ node {
       b: false
     }
   }
-  attr {
-    key: "use_nesterov"
-    value {
-      b: false
-    }
-  }
 }
 node {
   name: "Adam/mul"
@@ -10541,7 +19549,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -10561,7 +19569,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -10603,7 +19611,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -10623,7 +19631,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -14326,7 +23334,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -14421,7 +23429,7 @@ node {
     key: "_class"
     value {
       list {
-        s: "loc:@BatchNorm/beta"
+        s: "loc:@Variable"
       }
     }
   }
@@ -14479,5 +23487,5 @@ node {
   input: "^save/Assign_35"
 }
 versions {
-  producer: 24
+  producer: 21
 }
