@@ -103,10 +103,15 @@ class dataStructureParser:
     def getSessions(self, useLoadedData = True):
         if (useLoadedData):
             sessions = self.loadPickle('Sessions')
+            print(sessions[0].rawData[0][550])
         else:
             sessions = self.createRawSessionList()
+            print(sessions[0].rawData[0][550])
             self.saveToPickle(sessions, 'Sessions')
         return sessions
+
+    def convertToFloat32(self, trainX, trainY, testX, testY, validationX, validationY):
+        trainX = np.ndarray.astype(float32)
 
     # Method to be called from the Neural Network
     def getFeaturesAndLabels(self, useCropping = True):
@@ -116,6 +121,7 @@ class dataStructureParser:
         print("Crops Acquired and Shuffled.")
         trainX, trainY, testX, testY, validationX, validationY = self.createFeaturesAndLabels(crops)
         print("Features Created.")
+
         return trainX, trainY, testX, testY, validationX, validationY
 
 

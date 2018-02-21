@@ -9,7 +9,7 @@ class SQLImporter:
         self.sessionType = self.getSessionType(name)
 
     def getRawData(self, name):
-        conn = sqlite3.connect('/informatik2/students/home/5baracat/PycharmProjects/Praktikum-Neuronale-Netze/EEGDataBase.db')
+        conn = sqlite3.connect('C:/Users/JimBobKingJambo/Documents/Unity/Unify/Assets/DataBase/EEGDataBase.db')
         cur = conn.cursor()
         cur.execute("SELECT * FROM %s" % name)
         rows = cur.fetchall()

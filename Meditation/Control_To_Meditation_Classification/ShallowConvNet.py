@@ -279,7 +279,7 @@ def print_test_accuracy(show_example_errors=False,
                         show_confusion_matrix=False,
                         size= len(testY)):
 
-    num_test = size
+    num_test = 30#size
     cls_pred = np.zeros(shape=num_test, dtype=np.int)
     i = 0
 
@@ -295,8 +295,12 @@ def print_test_accuracy(show_example_errors=False,
         if i % 10000 == 0:
             print(i)
 
-    cls_true = testY[0:size]
+    cls_true = testY[0:num_test]
     cls_true = np.argmax(cls_true, axis=1)
+
+    for i in range(0, num_test):
+         print("OUTPUT IS: ", i, cls_pred[i], "and truth is ", testY[i])
+
     correct = (cls_true == cls_pred)
     correct_sum = correct.sum()
     acc = float(correct_sum) / num_test
@@ -321,7 +325,33 @@ def test_network(num_test_iterations = len(testY)):
 saver = tf.train.Saver()
 save_path_name = "tmp/shallow_convnet_meditation_weights.ckpt"
 
+
+saver.restore(session, save_path_name)
+
+# images = testX[0:128]
+# labels = testY[0:128]
+# cls_pred = session.run(output, feed_dict={x: images})
+# avg = 0
+# for i in range (0, 128):
+#     avg += cls_pred[i]
+#     print("For Index ", i, "Output is: ", cls_pred[i], "and truth is ", testY[i])
+# print("Average: ", avg / 128)
+#
+#
+# index = 0
+# image = [testX[index]]
+# label = [testY[index]]
+# avg = 0
+# for i in range(0, 128):
+#     y_out = session.run(output, feed_dict={x: image})
+#     print("For Index ", i, "Output is: ", y_out[0], "and truth is ", testY[index])
+#     avg += y_out[0]
+#     index = index + 1
+#     image = [testX[index]]
+#     #label = [testY[index]]
+# print("Average: ", avg / 128)
 #######################################
+print(type(testX[0][0][0]))
 
 mode = input("Please Enter either 'Train' to train the Network, or 'Test' to test it. 'Save' will export it.. You should only test once you have trained it.")
 if (mode == "Train"):
@@ -332,10 +362,15 @@ if (mode == "Test"):
     test_network()
 if (mode == "Save"):
     print("Saving the network to a .bytes graph for external use.")
-    tf.train.write_graph(session.graph_def, ".", "MeditationShallowConvNet.pb")
-    freeze_graph.freeze_graph(input_graph = "MeditationShallowConvNet.pb",
-                              input_binary = False,
-                              input_checkpoint = "tmp/shallow_convnet_meditation_weights.ckpt",
+    model_name = "MeditationShallowConvNet.pb"
+    model_path = tf.train.write_graph(session.graph_def, "", model_name, as_text = False)
+
+    ckpt = tf.train.get_checkpoint_state("tmp")
+    last_checkpoint = ckpt.model_checkpoint_path
+
+    freeze_graph.freeze_graph(input_graph = model_path,
+                              input_binary = True,
+                              input_checkpoint = last_checkpoint,
                               output_node_names = "action",
                               output_graph = "frozen_shallow_convnet_meditation.bytes",
                               clear_devices = True,
@@ -344,12 +379,26 @@ if (mode == "Save"):
                               filename_tensor_name = "save/Const:0",
                               restore_op_name = "save/restore_all")
 
-#######################################
 
-# TODO: What about an Ensemble CNN, where each one takes in a filter bank of the Wavelet Packet Decomposition
-# TODO: Implement a RCNN?
 
-#TODO: Go Through all todos
+    with tf.gfile.GFile("frozen_shallow_convnet_meditation.bytes", "rb") as f:
+        graph_def = tf.GraphDef()
+        graph_def.ParseFromString(f.read())
+
+    with tf.Graph().as_default() as graph:
+        tf.import_graph_def(graph_def, name="")
+
+    x = graph.get_tensor_by_name('x:0')
+    y = graph.get_tensor_by_name('action:0')
+    images = testX[0:128]
+    labels = testY[0:128]
+    avg = 0
+    with tf.Session(graph = graph) as sess:
+        y_out = sess.run(y, feed_dict={x : images})
+        for i in range (0, 128):
+            avg += y_out[i]
+            print("For Index ", i, "Output is: ", y_out[i], "and truth is ", testY[i])
+        print("Average: ", avg / 128)
 
 
 
