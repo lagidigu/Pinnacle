@@ -9,12 +9,12 @@ class SQLImporter:
         self.sessionType = self.getSessionType(name)
 
     def getRawData(self, name):
-        conn = sqlite3.connect('C:/Users/JimBobKingJambo/Documents/Unity/Unify/Assets/DataBase/EEGDataBase.db')
+        conn = sqlite3.connect('EEGDataBase.db')
         cur = conn.cursor()
         cur.execute("SELECT * FROM %s" % name)
         rows = cur.fetchall()
 
-        return np.array(rows)
+        return np.array(rows).astype(float)
 
     def getSessionType(self, name):
         if ('Meditation' in name) or ('TimeMarker' in name):

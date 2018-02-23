@@ -1,6 +1,7 @@
 import os
 import pickle
 import random
+import tensorflow as tf
 
 import numpy as np
 from Meditation.Control_To_Meditation_Classification.RawConverter import RawConverter
@@ -103,7 +104,10 @@ class dataStructureParser:
     def getSessions(self, useLoadedData = True):
         if (useLoadedData):
             sessions = self.loadPickle('Sessions')
-            print(sessions[0].rawData[0][550])
+            for i in range (0, len(sessions)):
+                sessions[i].rawData = np.array(sessions[i].rawData, dtype=np.float32)
+
+            print(type(sessions[0].rawData[0][550]))
         else:
             sessions = self.createRawSessionList()
             print(sessions[0].rawData[0][550])
@@ -111,7 +115,15 @@ class dataStructureParser:
         return sessions
 
     def convertToFloat32(self, trainX, trainY, testX, testY, validationX, validationY):
-        trainX = np.ndarray.astype(float32)
+        newTrainX = np.array(trainX).astype(float)
+        newTrainY = np.array(trainY).astype(float)
+        newTestX = np.array(testX).astype(float)
+        newTestY = np.array(testY).astype(float)
+        newValidationX = np.array(validationX).astype(float)
+        newValidationY = np.array(validationY).astype(float)
+        return newTrainX, newTrainY, newTestX, newTestY, newValidationX, newValidationY
+
+
 
     # Method to be called from the Neural Network
     def getFeaturesAndLabels(self, useCropping = True):
@@ -121,7 +133,9 @@ class dataStructureParser:
         print("Crops Acquired and Shuffled.")
         trainX, trainY, testX, testY, validationX, validationY = self.createFeaturesAndLabels(crops)
         print("Features Created.")
-
+        #trainX, trainY, testX, testY, validationX, validationY = self.convertToFloat32(trainX, trainY, testX, testY, validationX, validationY)
+        #print("Converted to float 32")
+        #print(type(trainX[0][0][0]))
         return trainX, trainY, testX, testY, validationX, validationY
 
 

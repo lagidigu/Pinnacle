@@ -206,6 +206,7 @@ num_channels = 1
 num_classes = 2
 
 #Placeholder variable for input
+
 x = tf.placeholder(tf.float32, shape=[None, img_size_x, img_size_y], name='x')
 x_image = tf.reshape(x, [-1, img_size_x, img_size_y, num_channels])
 
@@ -326,7 +327,7 @@ saver = tf.train.Saver()
 save_path_name = "tmp/shallow_convnet_meditation_weights.ckpt"
 
 
-saver.restore(session, save_path_name)
+#saver.restore(session, save_path_name)
 
 # images = testX[0:128]
 # labels = testY[0:128]
@@ -381,24 +382,24 @@ if (mode == "Save"):
 
 
 
-    with tf.gfile.GFile("frozen_shallow_convnet_meditation.bytes", "rb") as f:
-        graph_def = tf.GraphDef()
-        graph_def.ParseFromString(f.read())
-
-    with tf.Graph().as_default() as graph:
-        tf.import_graph_def(graph_def, name="")
-
-    x = graph.get_tensor_by_name('x:0')
-    y = graph.get_tensor_by_name('action:0')
-    images = testX[0:128]
-    labels = testY[0:128]
-    avg = 0
-    with tf.Session(graph = graph) as sess:
-        y_out = sess.run(y, feed_dict={x : images})
-        for i in range (0, 128):
-            avg += y_out[i]
-            print("For Index ", i, "Output is: ", y_out[i], "and truth is ", testY[i])
-        print("Average: ", avg / 128)
+    # with tf.gfile.GFile("frozen_shallow_convnet_meditation.bytes", "rb") as f:
+    #     graph_def = tf.GraphDef()
+    #     graph_def.ParseFromString(f.read())
+    #
+    # with tf.Graph().as_default() as graph:
+    #     tf.import_graph_def(graph_def, name="")
+    #
+    # x = graph.get_tensor_by_name('x:0')
+    # y = graph.get_tensor_by_name('action:0')
+    # images = testX[0:128]
+    # labels = testY[0:128]
+    # avg = 0
+    # with tf.Session(graph = graph) as sess:
+    #     y_out = sess.run(y, feed_dict={x : images})
+    #     for i in range (0, 128):
+    #         avg += y_out[i]
+    #         print("For Index ", i, "Output is: ", y_out[i], "and truth is ", testY[i])
+    #     print("Average: ", avg / 128)
 
 
 
