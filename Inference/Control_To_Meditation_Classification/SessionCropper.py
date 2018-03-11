@@ -1,6 +1,5 @@
 from Inference.Control_To_Meditation_Classification.Crop import Crop
 
-
 class SessionCropper:
 
     def __init__(self, sessionList : list, size, step):
